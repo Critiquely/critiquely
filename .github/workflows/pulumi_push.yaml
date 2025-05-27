@@ -31,7 +31,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: install requirements.txt
         working-directory: ./infrastructure
-        run: uv pip install -r requirements.txt
+        run: uv pip install -r requirements.txt --system
       - uses: pulumi/actions@v6
         with:
           command: up
