@@ -35,11 +35,6 @@ jobs:
       - name: Install Python dependencies
         working-directory: ./infrastructure
         run: uv pip install -r requirements.txt
-      - name: Set virtual environment for Pulumi
-        working-directory: ./infrastructure
-        run: |
-          echo "VIRTUAL_ENV=$(pwd)/.venv" >> $GITHUB_ENV # Set VIRTUAL_ENV for subsequent steps
-          echo "$(pwd)/.venv/bin" >> $GITHUB_PATH # Add venv bin to PATH for subsequent steps
       - uses: pulumi/actions@v6
         with:
           command: up
