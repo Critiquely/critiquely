@@ -2,7 +2,7 @@ name: Pulumi
 on:
   push:
     branches:
-      - ci/pulumi-push
+      - main
 
 env:
   AWS_REGION : eu-west-2
