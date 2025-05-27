@@ -1,0 +1,44 @@
+name: Pulumi
+on:
+  - pull_request
+
+env:
+  AWS_REGION : eu-west-2
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  update:
+    name: Update
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1.7.0
+        with:
+          role-to-assume: arn:aws:iam::443170140241:role/github_oidc
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Create Python virtual environment
+        working-directory: ./infrastructure
+        run: uv venv
+      - name: Install Python dependencies
+        working-directory: ./infrastructure
+        run: uv pip install -r requirements.txt
+      - uses: pulumi/actions@v6
+        with:
+          command: preview
+          stack-name: critiquely/critique-engine/dev
+          work-dir: ./infrastructure
+          comment-on-pr: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
