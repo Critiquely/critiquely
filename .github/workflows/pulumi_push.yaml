@@ -23,20 +23,23 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: 3.13
-      - name: configure aws credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
           role-to-assume: arn:aws:iam::443170140241:role/github_oidc
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ env.AWS_REGION }}
-      - name: create venv
+      - name: Create Python virtual environment
         working-directory: ./infrastructure
-        run: uv venv venv
-      - name: install requirements.txt
+        run: uv venv
+      - name: Install Python dependencies
+        working-directory: ./infrastructure
+        run: uv pip install -r requirements.txt
+      - name: Set virtual environment for Pulumi
         working-directory: ./infrastructure
         run: |
-          source ./venv/bin/activate
-          uv pip install -r requirements.txt
+          echo "VIRTUAL_ENV=$(pwd)/.venv" >> $GITHUB_ENV # Set VIRTUAL_ENV for subsequent steps
+          echo "$(pwd)/.venv/bin" >> $GITHUB_PATH # Add venv bin to PATH for subsequent steps
       - uses: pulumi/actions@v6
         with:
           command: up
@@ -44,4 +47,3 @@ jobs:
           work-dir: ./infrastructure
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
-          PULUMI_PYTHON_CMD: ./venv/bin/python
