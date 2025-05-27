@@ -22,7 +22,7 @@ jobs:
       - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
-          python-version-file: "/infrastructure/.python-version"
+          python-version-file: "infrastructure/.python-version"
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
