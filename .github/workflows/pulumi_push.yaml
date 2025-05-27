@@ -2,7 +2,7 @@ name: Pulumi
 on:
   push:
     branches:
-      - main
+      - ci/pulumi-push
 
 env:
   AWS_REGION : eu-west-2
@@ -22,7 +22,7 @@ jobs:
       - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
-          python-version-file: "infrastructure/.python-version"
+          python-version: 3.13
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
@@ -31,7 +31,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: install requirements.txt
         working-directory: ./infrastructure
-        run: uv pip install -r requirements.txt --system
+        run: uv pip install -r requirements.txt
       - uses: pulumi/actions@v6
         with:
           command: up
