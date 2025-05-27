@@ -31,7 +31,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: create venv
         working-directory: ./infrastructure
-        run: uv venv
+        run: uv venv venv
       - name: install requirements.txt
         working-directory: ./infrastructure
         run: uv pip install -r requirements.txt
