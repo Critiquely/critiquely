@@ -18,17 +18,20 @@ jobs:
       - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
-          python-version-file: "../../.python-version"
+          python-version-file: ".python-version"
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
           role-to-assume: arn:aws:iam::443170140241:role/github_oidc
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ env.AWS_REGION }}
-      - run: uv pip install -r requirements.txt
+      - name: install requirements.txt
+        working-directory: ./infrastructure
+        run: uv pip install -r requirements.txt
       - uses: pulumi/actions@v6
         with:
           command: up
           stack-name: Critiquely/critique-engine
+          work-dir: ./infrastructure
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
