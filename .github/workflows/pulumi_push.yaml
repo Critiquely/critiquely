@@ -34,7 +34,9 @@ jobs:
         run: uv venv venv
       - name: install requirements.txt
         working-directory: ./infrastructure
-        run: uv pip install -r requirements.txt
+        run: |
+          source ./venv/bin/activate
+          uv pip install -r requirements.txt
       - uses: pulumi/actions@v6
         with:
           command: up
