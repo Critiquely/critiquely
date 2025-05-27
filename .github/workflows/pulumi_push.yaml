@@ -29,9 +29,12 @@ jobs:
           role-to-assume: arn:aws:iam::443170140241:role/github_oidc
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ env.AWS_REGION }}
+      - name: create venv
+        working-directory: ./infrastructure
+        run: uv venv
       - name: install requirements.txt
         working-directory: ./infrastructure
-        run: pip install -r requirements.txt
+        run: uv pip install -r requirements.txt
       - uses: pulumi/actions@v6
         with:
           command: up
@@ -39,3 +42,4 @@ jobs:
           work-dir: ./infrastructure
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
+          PULUMI_PYTHON_CMD: ./venv/bin/python
