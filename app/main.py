@@ -26,18 +26,18 @@ handler = Mangum(app)  # for AWS Lambda / API Gateway
 
 # ─────────────────────────────────  Helpers  ────────────────────────────────────
 
-def extract_changed_lines(file: Dict[str, str]) -> Set[int]:
+def extract_changed_lines(file_info: Dict[str, str]) -> Set[int]:
     """
     Return a set of line numbers (added or removed) for one file diff
     taken from the GitHub `/pulls/:num/files` endpoint.
     """
-    patch_text = file.get("patch")
+    patch_text = file_info.get("patch")
     if not patch_text:
         return set()
 
     synthetic_diff = (
-        f"--- a/{file['filename']}\n"
-        f"+++ b/{file['filename']}\n"
+        f"--- a/{file_info['filename']}\n"
+        f"+++ b/{file_info['filename']}\n"
         f"{patch_text}"
     )
     patch = PatchSet.from_string(synthetic_diff)
@@ -51,7 +51,7 @@ def extract_changed_lines(file: Dict[str, str]) -> Set[int]:
     return changed
 
 
-async def get_pr_modified_files(pr_url: str) -> List[Dict[str, object]]:
+async def get_pr_modified_files(pr_url: str) -> list[dict[str, object]]:
     """Get the modified files for a given PR url"""
     if not pr_url:
         raise HTTPException(status_code=400, detail="Missing Pull-Request URL")
