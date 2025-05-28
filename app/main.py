@@ -1,6 +1,6 @@
 """FastAPI GitHub webhook that returns the lines changed in each file of a PR."""
 import os
-from typing import Dict, List, Set
+from typing import Dict, Set
 
 import httpx
 from fastapi import FastAPI, Header, HTTPException, Request
