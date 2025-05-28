@@ -52,7 +52,7 @@ def extract_changed_lines(file: Dict[str, str]) -> Set[int]:
 
 
 async def get_pr_modified_files(pr_url: str) -> List[Dict[str, object]]:
-    """Call GitHub and return `[{'filename': str, 'lines_changed': List[int]}, …]`."""
+    """Get the modified files for a given PR url"""
     if not pr_url:
         raise HTTPException(status_code=400, detail="Missing Pull-Request URL")
 
