@@ -46,6 +46,6 @@ github_oidc_role = aws.iam.Role(
     name="github_oidc",
     assume_role_policy=assume_role_policy.json,
     managed_policy_arns=[
-        "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
+        "arn:aws:iam::aws:policy/AdministratorAccess"
     ]
 )
