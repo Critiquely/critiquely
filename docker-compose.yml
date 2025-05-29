@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  mcp-server:
+    image: ghcr.io/github/github-mcp-server:latest
+    # stdin_open: true
+    tty: true
+    environment:
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+    ports:
+      - "8080:8080"
+    expose:
+      - "8080"
+
+  critiquely-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile.cli
+    depends_on:
+      - mcp-server
+    environment:
+      - GITHUB_MCP_SERVER_URL=http://mcp-server:8080
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    volumes:
+      - ./cli:/app/cli
+    working_dir: /app/cli
+    command: bash -c "pip install -e . && critiquely"
+    # Uncomment the following line to keep the container running
+    # tty: true
