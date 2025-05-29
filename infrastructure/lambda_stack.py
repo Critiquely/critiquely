@@ -2,6 +2,7 @@ import json
 import pulumi
 import pulumi_aws as aws
 import pulumi_aws_apigateway as apigateway
+from ecr import ecr
 
 # An execution role to use for the Lambda function
 role = aws.iam.Role("role", 
@@ -22,12 +23,11 @@ fn = aws.lambda_.Function("fn",
     runtime="python3.9",
     handler="handler.handler",
     role=role.arn,
-    code=pulumi.FileArchive("./function"))
+    image_uri=ecr.repository_url)
 
 # A REST API to route requests to HTML content and the Lambda function
 api = apigateway.RestAPI("api",
   routes=[
-    apigateway.RouteArgs(path="/", local_path="www"),
     apigateway.RouteArgs(path="/webhook", method=apigateway.Method.POST, event_handler=fn)
   ])
 
