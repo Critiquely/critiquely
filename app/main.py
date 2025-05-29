@@ -103,4 +103,10 @@ async def handle_webhook(
 
     pr_url = payload.get("pull_request").get("url")
     modified_files = await get_pr_modified_files(pr_url)
-    return {"modified_files": modified_files}
+    return {
+        "id": payload.get("number"),
+        "name": payload.get("repository").get("name"),
+        "branch": payload.get("pull_request").get("head").get("ref"),
+        "clone_url": payload.get("repository").get("clone_url"),
+        "modified_files": modified_files
+    }
