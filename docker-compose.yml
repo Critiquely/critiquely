@@ -1,26 +1,41 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  mcp-server:
-    image: ghcr.io/github/github-mcp-server:latest
-    # stdin_open: true
-    tty: true
-    environment:
-      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+  github-mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp-proxy
+    restart: unless-stopped
     ports:
-      - "8080:8080"
-    expose:
+      - 8080:8080
+    environment:
+      - GITHUB_PERSONAL_ACCESS_TOKEN=XXXXX
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - --sse-host
+      - 0.0.0.0
+      - --port
       - "8080"
+      - --pass-environment
+      - --
+      - docker
+      - run
+      - -i
+      - --rm
+      - -e
+      - GITHUB_PERSONAL_ACCESS_TOKEN
+      - ghcr.io/github/github-mcp-server
 
   critiquely-cli:
     build:
       context: .
       dockerfile: Dockerfile.cli
     depends_on:
-      - mcp-server
+      - github-mcp-server
     environment:
       - GITHUB_MCP_SERVER_URL=http://mcp-server:8080
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_TOKEN=
     volumes:
       - ./cli:/app/cli
     working_dir: /app/cli
