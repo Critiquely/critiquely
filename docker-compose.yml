@@ -9,7 +9,7 @@ services:
     ports:
       - 8080:8080
     environment:
-      - GITHUB_PERSONAL_ACCESS_TOKEN=XXXXX
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command:
@@ -27,18 +27,19 @@ services:
       - GITHUB_PERSONAL_ACCESS_TOKEN
       - ghcr.io/github/github-mcp-server
 
-  critiquely-cli:
-    build:
-      context: .
-      dockerfile: Dockerfile.cli
-    depends_on:
-      - github-mcp-server
-    environment:
-      - GITHUB_MCP_SERVER_URL=http://mcp-server:8080
-      - GITHUB_TOKEN=
-    volumes:
-      - ./cli:/app/cli
-    working_dir: /app/cli
-    command: bash -c "pip install -e . && critiquely"
+  # critiquely-cli:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.cli
+  #   depends_on:
+  #     - github-mcp-server
+  #   environment:
+  #     - GITHUB_MCP_SERVER_URL=http://github-mcp-server:8080
+  #     - GITHUB_TOKEN=${GITHUB_TOKEN}
+  #     - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+  #   volumes:
+  #     - ./cli:/app/cli
+  #   working_dir: /app/cli
+  #   command: bash -c "pip install -e . && critiquely"
     # Uncomment the following line to keep the container running
     # tty: true
