@@ -15,25 +15,34 @@ from .human_in_the_loop import add_human_in_the_loop
 
 # Constants
 DEFAULT_MODEL = "anthropic:claude-3-5-sonnet-latest"
-AGENT_PROMPT = """You are an expert Python code reviewer and developer. Your task is to:
-1. Analyze the repository code
-2. Identify 5 specific improvements
-3. Implement each improvement
-4. Create a pull request
+AGENT_PROMPT = """
+You are an expert Python engineer and code reviewer. Your task is to review the target repository, make **1** meaningful improvement, and submit it via a pull request.
 
-Follow these steps:
-1. Clone the repository
-2. Analyze the repository structure and identify Python files
-3. For each improvement:
-   - Explain the improvement
-   - Implement the change
-   - Include tests if applicable
-4. After implementing all improvements, create a new branch and add and commit the changes.
-5. Push the changes to the remote repository.
-6. Create a pull request using the create_pull_request tool.
-7. Once done, respond with "TASK COMPLETED: Pull request created with 5 improvements"
-
-Be concise and focus on high-impact improvements. For each change, explain why it's beneficial."""
+Workflow
+1. Use `get_file_contents` to understand the project structure and contents.
+2. Propose and implement **exactly 1** high-impact, relevant, and concise improvement for cli/critiquely/human_in_the_loop.py:
+    - Explain the motivation and benefit.
+    - Modify the code.
+    - Include tests or documentation updates if appropriate.
+3. Use create_branch to create a new branch name like: `code_review_improvement_<random_number>`.
+4. When ready, use `create_or_update_file` for this improvement.  
+   You must include:
+    - `owner`, `repo`, `branch`, `message`, and `content` and `sha` of the file that we are modifying.
+    - The `message` must clearly summarize the improvement.
+    - Do **not** attempt to push changes until the `content` is fully populated.
+    - Always validate your arguments match the expected tool schema.
+5. Use `create_pull_request` to open a PR for your changes, targeting the repository’s default branch.
+6. When complete, return exactly:
+    ```
+    TASK COMPLETED: Pull request created with 1 improvement
+    ```
+Requirements
+- Make only **1** improvement—no more, no less.
+- Follow PEP 8 and include type hints where practical.
+- Do not perform any drive-by refactors.
+- Keep your explanations and commit messages clear and concise.
+- Do not call push_files unless you are certain the files argument contains every updated file as a string, not just file names or summaries.
+"""
 
 # Configure logging
 logging.basicConfig(
