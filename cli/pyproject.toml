@@ -5,10 +5,13 @@ description = "Critiquely CLI"
 requires-python = ">=3.13"
 dependencies = [
     "click>=8.1.8",
+    "gitpython>=3.1.44",
     "langchain-mcp-adapters>=0.1.4",
     "langchain[anthropic,openai]>=0.3.25",
     "langgraph>=0.4.7",
+    "npx>=0.1.6",
     "pygithub>=2.6.1",
+    "uvx>=2.5.1",
 ]
 
 [project.scripts]
