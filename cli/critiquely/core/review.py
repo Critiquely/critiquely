@@ -15,6 +15,7 @@ async def run_code_review(
     local_dir: str,
     remote_repo: str,
     branch: str,
+    modified_files: str,
     interactive: bool = False,
 ) -> Dict[str, Any]:
     """
@@ -61,6 +62,7 @@ async def run_code_review(
                         f"Conduct a code review of the repository cloned to: {local_dir}.\n"
                         f"The remote URL of the repository is: {remote_repo}.\n"
                         f"The branch we have pulled is: {branch}.\n"
+                        f"The files and lines wihtin those files which have been modified: {modified_files}.\n"
                     )
                 }]
             }

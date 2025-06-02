@@ -25,8 +25,13 @@ logger = logging.getLogger(__name__)
     required=True,
     help="The branch within the repository you want to critique"
 )
+@click.option(
+    "--modified_files",
+    required=True,
+    help="A json object consisting of the modified files"
+)
 @click.pass_context
-def cli(ctx: click.Context, interactive: bool, repo_url: str, branch: str) -> None:
+def cli(ctx: click.Context, interactive: bool, repo_url: str, branch: str, modified_files: str) -> None:
     """Run the code review CLI."""
 
     async def run():
@@ -36,6 +41,7 @@ def cli(ctx: click.Context, interactive: bool, repo_url: str, branch: str) -> No
                 local_dir,
                 remote_repo=repo_url,
                 branch=branch,
+                modified_files=modified_files,
                 interactive=interactive
             )
             click.echo(result)
