@@ -41,7 +41,9 @@ def cli(ctx: click.Context, interactive: bool, repo_url: str, branch: str) -> No
             click.echo(result)
             click.echo("\n" + "=" * 50 + "\n")
         except CodeReviewError as e:
+            logger.error(f"Code review failed: {e}", exc_info=True)
             click.echo(f"Code review failed: {e}", err=True)
+            ctx.exit(1)
 
     asyncio.run(run())
 
