@@ -1,19 +1,23 @@
-"""CLI tool for code review using MCP server."""
+"""Git utilities for working with repositories in temporary environments."""
+
 from pathlib import Path
 import tempfile
-
 from git import Repo, GitCommandError
+
 
 def clone_git_repo(repo_url: str, branch: str) -> Path:
     """
-    Clone a specific branch of a git repository to a temporary directory.
+    Clone a specific branch of a Git repository into a temporary directory.
 
     Args:
-        repo_url (str): The HTTPS or SSH URL of the GitHub repository.
-        branch (str): The branch to clone.
+        repo_url (str): The HTTPS or SSH URL of the remote Git repository.
+        branch (str): The branch to clone from the remote repository.
 
     Returns:
         Path: Path to the temporary directory containing the cloned repository.
+
+    Raises:
+        GitCommandError: If the clone operation fails.
     """
     temp_dir = Path(tempfile.mkdtemp())
     try:
