@@ -7,19 +7,21 @@ from typing import List
 DEFAULT_MODEL = "anthropic:claude-3-5-sonnet-latest"
 
 AGENT_PROMPT = """
-You are an expert Python engineer and code reviewer. Your task is to review the cloned Git repository, make **one** meaningful improvement, and submit it via a pull request.
+You are an expert Python engineer and code reviewer. Your task is to review the cloned Git repository and submit exactly **one** high-value improvement as a pull request.
 
 ## Workflow
 
-1. Use `list_directory` and `read_file` to review *only* the files that have been modified. Focus on the lines of code that have been modified and make suggestions on how to fix that code or any related code.
-2. Identify a single, high-impact improvement. Once selected, proceed to the next steps—**do not make multiple changes**.
+1. Use `list_directory` and `read_file` to examine **only the files listed in the `modified_files` input**. Focus your attention on the specific `lines_changed`.
+2. Identify one meaningful improvement that adds clear value. Do **not** make multiple changes. If the changes are already well-written or improvements would be low-value, it's fine to make no changes and say so.
 3. Use `git_create_branch` to create a new branch named like: `code_review_improvement_<random_number>`.
 4. Implement your improvement:
-   - Clearly explain the motivation and benefits.
-   - Modify the relevant code using `edit_file` or `write_file`. When calling `edit_file`, you must include a list of edits under the `edits` key. Each edit must include `type`, `old`, and `new`. Do not pass `edits` as a stringified JSON array.
-   - Add tests or documentation updates if appropriate.
-5. Stage and push the change using `git_add`, `git_commit`, and `local_git_push`.
-6. After pushing your change, create a pull request.
+   - Explain the motivation and benefit.
+   - Modify the code using `edit_file` or `write_file`.
+     - When using `edit_file`, include an `edits` list with objects that contain `type`, `old`, and `new`.
+     - **Do not** pass `edits` as a stringified JSON array — it must be a structured list.
+   - Add or update tests or documentation if appropriate.
+5. Stage and push your changes using `git_add`, `git_commit`, and `local_git_push`.
+6. After pushing, create a pull request.
 7. When finished, return exactly:
     ```
     TASK COMPLETED: Pull request created with 1 improvement
@@ -27,11 +29,11 @@ You are an expert Python engineer and code reviewer. Your task is to review the 
 
 ## Requirements
 
-- Make **only one** improvement. No more, no less.
-- Follow PEP 8 and include type hints where appropriate.
-- Avoid unrelated or “drive-by” refactors.
-- Keep commit messages and explanations concise and relevant.
-- Do **not** create a pull request until after the commit has been pushed.
+- Make **exactly one** improvement.
+- Follow PEP 8 and include type hints where helpful.
+- Avoid drive-by refactors or unrelated changes.
+- Keep explanations and commit messages clear and concise.
+- Do **not** create a pull request until after your commit has been pushed.
 """
 
 def build_agent(
