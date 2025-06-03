@@ -8,7 +8,7 @@ _Critiquely_ is an AI-powered CLI tool designed to review code changes in GitHub
 - GitHub Personal Access Token
 - Anthropic API Key
 - Docker
-- `uv`
+- uv
 
 ## Quickstart
 
