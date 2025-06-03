@@ -1,5 +1,5 @@
 [project]
-name = "critiquely"
+name = "cli"
 version = "1.0.0"
 description = "Critiquely CLI"
 requires-python = ">=3.13"
@@ -10,12 +10,12 @@ dependencies = [
     "langchain[anthropic,openai]>=0.3.25",
     "langgraph>=0.4.7",
     "npx>=0.1.6",
-    "pygithub>=2.6.1",
-    "uvx>=2.5.1",
+    "pygithub>=2.6.1"
 ]
 
 [project.scripts]
-critiquely = "critiquely:critiquely.cli"
+critiquely = "cli.main:cli"
+
 
 [build-system]
 requires = ["flit_core<4"]
