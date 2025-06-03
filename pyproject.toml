@@ -6,11 +6,14 @@ requires-python = ">=3.13"
 dependencies = [
     "click>=8.1.8",
     "gitpython>=3.1.44",
+    "ipython>=9.3.0",
     "langchain-mcp-adapters>=0.1.4",
     "langchain[anthropic,openai]>=0.3.25",
-    "langgraph>=0.4.7",
+    "langgraph>=0.4.8",
+    "langsmith>=0.3.44",
     "npx>=0.1.6",
-    "pygithub>=2.6.1"
+    "pillow>=11.2.1",
+    "pygithub>=2.6.1",
 ]
 
 [project.scripts]
