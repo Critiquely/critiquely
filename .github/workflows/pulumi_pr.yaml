@@ -29,13 +29,13 @@ jobs:
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ env.AWS_REGION }}
       - name: Create Python virtual environment
-        working-directory: ./infrastructure
+        working-directory: ./infrastructure/src
         run: pulumi install
       - uses: pulumi/actions@v6
         with:
           command: preview
           stack-name: critiquely/cli/prod
-          work-dir: ./infrastructure
+          work-dir: ./infrastructure/src
           comment-on-pr: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
         env:
