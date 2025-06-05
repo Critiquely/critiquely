@@ -30,10 +30,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: Create Python virtual environment
         working-directory: ./infrastructure
-        run: uv venv
-      - name: Install Python dependencies
-        working-directory: ./infrastructure
-        run: uv pip install -r requirements.txt
+        run: pulumi install
       - uses: pulumi/actions@v6
         with:
           command: preview
