@@ -1,4 +1,4 @@
-name: critique-engine
+name: cli
 runtime:
   name: python
   options:
