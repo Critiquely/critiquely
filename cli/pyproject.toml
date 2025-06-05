@@ -1,5 +1,5 @@
 [project]
-name = "cli"
+name = "src"
 version = "1.0.0"
 description = "Critiquely CLI"
 requires-python = ">=3.13"
@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.scripts]
-critiquely = "cli.main:cli"
+critiquely = "src.main:cli"
 
 
 [build-system]

@@ -38,7 +38,7 @@ jobs:
       - uses: pulumi/actions@v6
         with:
           command: up
-          stack-name: critiquely/critique-engine/dev
+          stack-name: critiquely/cli/prod
           work-dir: ./infrastructure
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}

@@ -1,0 +1,15 @@
+[project]
+name = "src"
+version = "1.0.0"
+description = "Critiquely CLI"
+requires-python = ">=3.13"
+dependencies = [
+    "pulumi>=3.174.0",
+    "pulumi-aws>=6.82.1",
+    "pulumi-aws-apigateway>=2.6.2",
+]
+
+
+[build-system]
+requires = ["flit_core<4"]
+build-backend = "flit_core.buildapi"
