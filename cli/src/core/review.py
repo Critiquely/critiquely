@@ -4,10 +4,10 @@ from typing import Any, Dict
 from langgraph.types import Command
 from langgraph.checkpoint.memory import InMemorySaver
 
-from cli.core.mcp_client import get_mcp_client, CodeReviewError
-from cli.core.agent import build_agent
-from cli.tools.git import local_git_push
-from cli.tools.human_in_the_loop import add_human_in_the_loop
+from src.core.mcp_client import get_mcp_client, CodeReviewError
+from src.core.agent import build_agent
+from src.tools.git import local_git_push
+from src.tools.human_in_the_loop import add_human_in_the_loop
 
 logger = logging.getLogger(__name__)
 
