@@ -1,4 +1,4 @@
-name: prod
+name: cli
 runtime:
   name: python
   options:
