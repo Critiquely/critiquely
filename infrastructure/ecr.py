@@ -1,9 +1,9 @@
 import pulumi
 import pulumi_aws as aws
 
-ecr_name = "critique_engine"
+ecr_name = "cli"
 
-ecr = aws.ecr.Repository("critique_engine",
+ecr = aws.ecr.Repository("cli",
     name=ecr_name,
     image_tag_mutability="MUTABLE",
     image_scanning_configuration={
