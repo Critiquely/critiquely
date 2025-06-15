@@ -8,7 +8,7 @@ import operator
 from git import Repo, GitCommandError
 
 from langchain_core.messages import HumanMessage, AnyMessage
-from langchain.chat_models import ChatAnthropic
+from langchain_anthropic import ChatAnthropic
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 

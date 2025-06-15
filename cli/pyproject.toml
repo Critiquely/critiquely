@@ -8,6 +8,7 @@ dependencies = [
     "click>=8.1.8",
     "gitpython>=3.1.44",
     "ipython>=9.3.0",
+    "langchain-anthropic>=0.3.15",
     "langchain-community>=0.3.24",
     "langchain-mcp-adapters>=0.1.4",
     "langchain-openai>=0.3.19",
