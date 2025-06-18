@@ -1,6 +1,6 @@
 # src/core/review.py
 from src.core.graph import build_graph
-from src.core.git_utils import clone_git_repo
+from src.utils.git import clone_git_repo
 
 
 async def run_review_graph(repo_url: str, branch: str, modified_files: str):
