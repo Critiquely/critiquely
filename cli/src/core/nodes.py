@@ -2,11 +2,9 @@ import tempfile
 from pathlib import Path
 from git import Repo, GitCommandError
 
-from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import HumanMessage
 from src.core.state import DevAgentState
 
-llm = ChatAnthropic(model="claude-3-5-sonnet-latest")
 
 # --- Node: Clone Repo ---
 def clone_repo(state: DevAgentState) -> dict:
