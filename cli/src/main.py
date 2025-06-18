@@ -4,8 +4,8 @@ import asyncio
 import click
 import logging
 
-from cli.core.git_utils import clone_git_repo
-from cli.core.review import run_code_review, CodeReviewError
+from src.core.git_utils import clone_git_repo
+from src.core.review import run_code_review, CodeReviewError
 
 logger = logging.getLogger(__name__)
 

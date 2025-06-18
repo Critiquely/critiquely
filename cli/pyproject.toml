@@ -1,23 +1,29 @@
 [project]
-name = "cli"
+name = "src"
 version = "1.0.0"
 description = "Critiquely CLI"
 requires-python = ">=3.13"
 dependencies = [
+    "arxiv>=2.2.0",
     "click>=8.1.8",
     "gitpython>=3.1.44",
     "ipython>=9.3.0",
+=======
+    "langchain-anthropic>=0.3.15",
+    "langchain-community>=0.3.24",
     "langchain-mcp-adapters>=0.1.4",
+    "langchain-openai>=0.3.19",
     "langchain[anthropic,openai]>=0.3.25",
     "langgraph>=0.4.8",
     "langsmith>=0.3.44",
     "npx>=0.1.6",
     "pillow>=11.2.1",
     "pygithub>=2.6.1",
+    "wikipedia>=1.4.0",
 ]
 
 [project.scripts]
-critiquely = "cli.main:cli"
+critiquely = "src.main:cli"
 
 
 [build-system]

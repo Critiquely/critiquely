@@ -29,16 +29,13 @@ jobs:
           role-to-assume: arn:aws:iam::443170140241:role/github_oidc
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ env.AWS_REGION }}
-      - name: Create Python virtual environment
-        working-directory: ./infrastructure
-        run: uv venv
       - name: Install Python dependencies
-        working-directory: ./infrastructure
-        run: uv pip install -r requirements.txt
+        working-directory: ./infrastructure/src
+        run: pulumi install 
       - uses: pulumi/actions@v6
         with:
           command: up
-          stack-name: critiquely/critique-engine/dev
-          work-dir: ./infrastructure
+          stack-name: critiquely/cli/prod
+          work-dir: ./infrastructure/src
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}
