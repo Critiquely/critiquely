@@ -17,18 +17,6 @@ async def get_mcp_client() -> AsyncGenerator[MultiServerMCPClient, None]:
     Raises:
         CodeReviewError: If required environment variables are missing
     """
-    if not (server_url := os.environ.get("GITHUB_MCP_SERVER_URL")):
-        raise CodeReviewError("GITHUB_MCP_SERVER_URL environment variable is required")
-
-    # client = MultiServerMCPClient(
-    #     {
-    #         "github-mcp-server": {
-    #             "url": f"{server_url.rstrip('/')}/sse",
-    #             "transport": "sse",
-    #         }
-    #     }
-    # )
-
     client = MultiServerMCPClient(
         {
             "github-mcp-server": {
