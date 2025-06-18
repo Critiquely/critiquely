@@ -20,4 +20,5 @@ async def run_review_graph(repo_url: str, branch: str, modified_files: str):
 
     # Stream the output
     async for event in graph.astream(input_state):
-        print("Graph step:", event)
+        for value in event.values():
+            print("Assistant:", value["messages"][-1].content)
