@@ -2,6 +2,7 @@
 from src.core.graph import build_graph
 
 from uuid import uuid4
+import json
 
 
 from langchain_anthropic import ChatAnthropic
@@ -9,15 +10,16 @@ from src.tools.mcp import get_mcp_client
 
 
 
-async def run_review_graph(repo_url: str, branch: str, modified_files: str):
+async def run_review_graph(repo_url: str, repo_branch: str, modified_files: str):
+    print(repo_branch)
     # Build the graph
     graph = await build_graph()
 
     # Define the input state
     input_state = {
         "repo_url": repo_url,
-        "repo_branch": branch,
-        "modified_files": modified_files,
+        "repo_branch": repo_branch,
+        "modified_files": json.loads(modified_files),
         "messages": []
     }
 
@@ -33,3 +35,5 @@ async def run_review_graph(repo_url: str, branch: str, modified_files: str):
     async for event in graph.astream(input_state, config):
         for value in event.values():
             print("Assistant:", value["messages"][-1].content)
+
+    

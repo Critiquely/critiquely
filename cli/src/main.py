@@ -33,7 +33,7 @@ def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> 
         try:
             result = await run_review_graph(
                 repo_url=repo_url,
-                branch=branch,
+                repo_branch=branch,
                 modified_files=modified_files,
             )
             click.echo(result)

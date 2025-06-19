@@ -22,19 +22,26 @@ async def build_graph():
 
         graph_builder = StateGraph(DevAgentState)
 
+        def route_more(state: DevAgentState):
+            return "inspect_files" if state["modified_files"] else END
+
         tool_node = ToolNode(tools)
 
         graph_builder.add_node("clone_repo", clone_repo)
-        graph_builder.add_node("inspect_files", partial(inspect_files,llm_with_tools))
+        graph_builder.add_node("inspect_files", partial(inspect_files,llm))
         graph_builder.add_node("tool_call", tool_node)
 
         graph_builder.set_entry_point("clone_repo")
         graph_builder.add_edge("clone_repo", "inspect_files")
-        graph_builder.add_edge("tool_call", "inspect_files")
+    
         graph_builder.add_conditional_edges(
             "inspect_files",
-            route_tools,
-            {"tools": "tool_call", END: END},
+            route_more,
+            {
+                "inspect_files": "inspect_files",  # back into the node
+                END: END,                           # finish when empty
+            },
         )
+
 
         return graph_builder.compile(checkpointer=memory)
