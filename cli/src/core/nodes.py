@@ -29,10 +29,9 @@ def clone_repo(state: DevAgentState) -> dict:
         return {'messages': [HumanMessage(content=error_message)]}
 
 # --- Node: Inspect Files ---
-def inspect_files(state: DevAgentState) -> dict:
-    repo_path = Path(state['repo_path'])
-    files = list(repo_path.glob("**/*.py"))[:5]
-    summaries = {str(f): f.read_text()[:300] for f in files}
-    content = "\n\n".join([f"{k}: {v}" for k, v in summaries.items()])
-    return {"messages": [HumanMessage(content=f"Here are some files to consider:\n{content}")],
-            "files_to_edit": [str(f.relative_to(repo_path)) for f in files]}
+def inspect_files(llm_with_tools, state: DevAgentState) -> dict:
+    prompt = "Make recommendations on how to improve the code that has been modified. The code can be foune in " + state['repo_path'] + "and the following has been modified" + state['modified_files']
+    response = llm_with_tools.invoke(prompt)
+    return {
+        "messages": [HumanMessage(prompt), response],
+    }

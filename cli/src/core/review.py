@@ -8,15 +8,11 @@ from src.tools.mcp import get_mcp_client
 
 
 async def run_review_graph(repo_url: str, branch: str, modified_files: str):
-
-    tools = await get_mcp_client.get_tools()
-    llm = ChatAnthropic(model="claude-3-5-sonnet-latest")
-    llm_with_tools = llm.bind_tools(tools)
-
+    
     local_path = clone_git_repo(repo_url, branch)
 
     # Build the graph
-    graph = build_graph(llm_with_tools)
+    graph = await build_graph()
 
     # Define the input state
     input_state = {
