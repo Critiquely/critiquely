@@ -93,16 +93,21 @@ def inspect_files(llm, state: DevAgentState) -> dict:
             "You are a senior Python reviewer.\n\n"
             f"File: {fpath}\n"
             f"Modified lines: {lines_changed}\n\n"
-            "Provide **only** high-impact recommendations based on the modified lines"
-            "of the file that will materially improve functionality,"
-            "readability, performance, reliability, or security. "
-            "Do **not** include cosmetic or trivial style suggestions.\n"
-            "List **at most 3** recommendations. "
-            "If there are no high-value suggestions, return an empty JSON array.\n\n"
-            "Output as an array of JSON objects, each with:\n"
-            "  - `file`: the filename\n"
-            "  - `recommendations`: an array of recommendation strings\n\n"
-            f"{file_text}"
+            "You may review other parts of the file **only if they are directly impacted by the modified lines**.\n"
+            "Do **not** comment on unrelated or unmodified parts of the file.\n"
+            "Focus your review on how the modified lines affect the file's overall functionality, readability, performance, reliability, or security.\n\n"
+            "Provide **only high-impact recommendations**, avoiding cosmetic or low-value style suggestions.\n\n"
+            "List **at most 3** recommendations.\n"
+            "If there are no high-value suggestions, return an array with one object that includes the filename and an empty recommendations list.\n\n"
+            "**Do not explain, justify, or include any text outside the JSON array. Return only the JSON array.**\n\n"
+            "Output format:\n"
+            "[\n"
+            "  {\n"
+            "    \"file\": \"<filename>\",\n"
+            "    \"recommendations\": [\"...\", \"...\"]\n"
+            "  }\n"
+            "]\n\n"
+            f"File contents:\n{file_text}"
         )
     )
     response = llm.invoke([prompt])
@@ -110,11 +115,50 @@ def inspect_files(llm, state: DevAgentState) -> dict:
     # ── 5) Save conversation + latest review text ──────────────────────────
     state.setdefault("messages", []).extend([prompt, response])
 
+    print("response", response)
+
     try:
         parsed = json.loads(response.content.strip())
     except json.JSONDecodeError as e:
         print("Failed to parse JSON:", e)
         parsed = []  # fallback
     state.setdefault("recommendations", []).extend(parsed)
+
+    return state
+
+def apply_recommendations_with_mcp(llm_with_tools, state: DevAgentState) -> DevAgentState:
+    if not state["recommendations"]:
+        return state
+
+    current_rec = state["recommendations"].pop(0)
+    file_path = Path(current_rec["file"])
+    recs = current_rec.get("recommendations", [])
+
+    if not recs or not file_path.exists():
+        return state
+
+    file_text = file_path.read_text(encoding="utf-8")
+    instructions = "\n".join(f"- {r}" for r in recs)
+
+    prompt = (
+        f"You are a coding assistant. A user has asked for edits to a source file.\n\n"
+        f"File path: {file_path}\n\n"
+        f"File contents:\n{file_text}\n\n"
+        f"Requested changes:\n{instructions}\n\n"
+        f"Decide which tool to call from your available toolset to perform these changes. "
+        f"Only return the tool invocation with no explanation."
+    )
+
+    # Let the LLM choose the tool to call
+    result = llm_with_tools.invoke([HumanMessage(content=prompt)])
+
+    print(result)
+
+    state.setdefault("messages", []).append(
+        HumanMessage(content=f"Processed {file_path.name} via LLM tool choice.")
+    )
+    state.setdefault("updated_files", []).append(str(file_path))
+
+    print(f"Remaining recommendations: {state.get('recommendations', [])}")
 
     return state
