@@ -1,6 +1,6 @@
 import tempfile
 import json
-import random
+from uuid import uuid4
 import os
 import logging
 from urllib.parse import urlparse, urlunparse, quote
@@ -184,8 +184,6 @@ def create_branch( state: DevAgentState) -> DevAgentState:
     repo_path = state.get("repo_path", "").strip()
     branch   = state.get("repo_branch", "").strip()
 
-    cloned_repo = Repo(repo_path)
-
     if not repo_path:
         msg = "❌ Error: No repository path provided."
         logger.error(msg)
@@ -203,10 +201,10 @@ def create_branch( state: DevAgentState) -> DevAgentState:
         logger.error(msg)
         return {"messages":[HumanMessage(content=msg)]}
 
-    new_branch = f"critiquely/{branch}-improvements-{random.randint(1000, 9999)}"
+    new_branch = f"critiquely/{branch}-improvements-{uuid4().hex[:8]}"
     try:
         logger.info(f"🔄 Creating a new branch: {new_branch}")
-        new_branch = cloned_repo.create_head(new_branch)
+        new_branch = repo.create_head(new_branch)
         new_branch.checkout()
 
         msg = f"✅ New branch created: {new_branch}"
