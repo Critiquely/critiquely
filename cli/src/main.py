@@ -3,9 +3,17 @@
 import asyncio
 import click
 import logging
+import os
+
 
 from src.core.review import run_review_graph
 
+logging.basicConfig(
+    format="%(asctime)s %(levelname)7s %(message)s",
+    datefmt="%H:%M:%S",
+    level=logging.INFO
+)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +38,10 @@ def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> 
     """Run the code review CLI."""
 
     async def run():
+        if not (token := os.environ.get("GITHUB_TOKEN", "").strip()):
+            logger.error("❌ GITHUB_TOKEN is unset or empty")
+            sys.exit(1)
+
         try:
             result = await run_review_graph(
                 repo_url=repo_url,
@@ -39,7 +51,7 @@ def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> 
             click.echo(result)
             click.echo("\n" + "=" * 50 + "\n")
         except Exception as e:
-            click.echo(f"Code review failed: {e}", err=True)
+            logger.error(f"❌ Code review failed: {e}", exc_info=True)
 
     asyncio.run(run())
 

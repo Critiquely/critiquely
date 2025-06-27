@@ -3,6 +3,8 @@ from src.core.graph import build_graph
 
 from uuid import uuid4
 import json
+import logging
+
 
 
 from langchain_anthropic import ChatAnthropic
@@ -34,6 +36,8 @@ async def run_review_graph(repo_url: str, repo_branch: str, modified_files: str)
     # Stream the output
     async for event in graph.astream(input_state, config):
         for value in event.values():
-            print("Assistant:", value["messages"][-1].content)
+            content = value["messages"][-1].content
+            logging.info(f"🤖 Assistant: {content}")
+
 
     

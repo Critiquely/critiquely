@@ -8,6 +8,7 @@ class DevAgentState(TypedDict):
     repo_url: str
     repo_branch: str
     repo_path: Optional[str]
+    new_branch: Optional[str]
     modified_files: list[dict]
     current_file: Optional[str]
     current_file_content: Optional[str]

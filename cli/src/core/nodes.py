@@ -1,5 +1,9 @@
 import tempfile
 import json
+import random
+import os
+import logging
+from urllib.parse import urlparse, urlunparse, quote
 from pathlib import Path
 from git import Repo, GitCommandError
 
@@ -7,158 +11,208 @@ from langgraph.graph import END
 from langchain_core.messages import HumanMessage
 from src.core.state import DevAgentState
 
+# Use the root logger configuration from CLI
+logger = logging.getLogger(__name__)
+
+
 def route_tools(state: DevAgentState):
     """
-    Use in the conditional_edge to route to the ToolNode if the last message
-    has tool calls. Otherwise, route to the end.
+    Route to the ToolNode if the last message has tool calls; otherwise END.
     """
     if isinstance(state, list):
         ai_message = state[-1]
     elif messages := state.get("messages", []):
         ai_message = messages[-1]
     else:
-        raise ValueError(f"No messages found in input state to tool_edge: {state}")
-    if hasattr(ai_message, "tool_calls") and len(ai_message.tool_calls) > 0:
+        error = f"No messages found to route: {state}"
+        logger.error(f"❌ {error}")
+        raise ValueError(error)
+    
+    has_tools = bool(getattr(ai_message, "tool_calls", None))
+
+    if has_tools:
+        tool_name = ai_message.tool_calls[0]["name"]
+        logger.info(f"🚀 Routing to tool: {tool_name}")
         return "tools"
+
+    logger.info("🏁 Routing to END node")
     return END
 
 # --- Node: Clone Repo ---
 def clone_repo(state: DevAgentState) -> dict:
-    path = tempfile.mkdtemp()
-    print(f"Cloning repo to {path}...")
-    if not state.get('repo_url'):
-        return {'messages': [HumanMessage(content="Error: No repository URL provided.")]}
-    print( state['repo_branch'])
+    repo_url = state.get("repo_url", "").strip()
+    branch   = state.get("repo_branch", "").strip()
+
+    if not repo_url:
+        msg = "❌ Error: No repository URL provided."
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    if not branch:
+        msg = "❌ Error: No repository branch provided."
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if not token:
+        msg = "❌ Error: GITHUB_TOKEN is unset or empty."
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    # Percent-encode and inject token
+    token_enc = quote(token, safe="")
+    parsed    = urlparse(repo_url)
+    auth_url  = urlunparse(parsed._replace(netloc=f"{token_enc}@{parsed.netloc}"))
+
     try:
-        Repo.clone_from(
-            state['repo_url'],
-            path,
-            branch=state['repo_branch'],
+        temp_dir = tempfile.mkdtemp()
+        logger.info(f"🔄 Cloning {repo_url}@{branch} into {temp_dir}")
+        repo = Repo.clone_from(
+            auth_url,
+            temp_dir,
+            branch=branch,
             depth=1,
             single_branch=True
         )
-        print(f"Cloned {state['repo_url']} to {path}")
-        return {'repo_path': path, 'messages': [HumanMessage(content=f"Cloned repo to {path}")]}
+        # Scrub token from remote config
+        repo.remote().set_url(repo_url)
+
+        msg = f"✅ Cloned {repo_url}@{branch} to {temp_dir}"
+        logger.info(msg)
+        return {"repo_path": temp_dir, "messages": [HumanMessage(content=msg)]}
+
     except GitCommandError as exc:
-        error_message = f"Failed to clone: {exc}"
-        print(error_message)
-        return {'messages': [HumanMessage(content=error_message)]}
+        error = f"❌ Failed to clone {repo_url}@{branch}: {exc}"
+        logger.error(error)
+        return {"messages": [HumanMessage(content=error)]}
+
 
 # --- Node: Inspect Files ---
 def inspect_files(llm, state: DevAgentState) -> dict:
-    """
-    LangGraph node that reviews the *first* pending file.
-
-    Expected keys in `state` before call:
-        repo_path: str
-        modified_files: list[dict]  # [{filename, lines_changed, ...}]
-        messages: list[BaseMessage]  (optional)
-
-    Side effects on `state`:
-        current_file: str
-        current_file_content: str
-        last_review: str
-        messages: list[...]  (review prompt + response appended)
-        modified_files: 1st entry popped
-    """
-    # ── 1) Guard: nothing left to review ───────────────────────────────────
     if not state.get("modified_files"):
+        logger.info("✅ No modified files to inspect. Skipping.")
         return state
 
-    entry = state["modified_files"].pop(0)         # remove first item
+    entry = state["modified_files"].pop(0)
+    fname = entry.get("filename")
+    fpath = Path(state.get("repo_path", "")) / fname
 
-    # ── 2) Load file text ──────────────────────────────────────────────────
-    fname = entry["filename"]
-    fpath = Path(state["repo_path"]) / fname
-    file_text = fpath.read_text(encoding="utf-8")
-    lines_changed = entry["lines_changed"]
+    try:
+        file_text = fpath.read_text(encoding="utf-8")
+    except Exception as e:
+        logger.error(f"❌ Could not read file {fpath}: {e}")
+        state.setdefault("messages", []).append(HumanMessage(content=msg))
+        return state
 
-    state["current_file"] = fname
-    state["current_file_content"] = file_text
-    state["current_file_lines_changed"] = lines_changed
+    lines_changed = entry.get("lines_changed", [])
+    logger.info(f"🔍 Inspecting {fname} (lines {lines_changed})")
 
-    # # ── 3) Build a snippet of only the changed lines (for shorter prompts) ─
-    # changed = entry.get("lines_changed", [])
-    # if changed:
-    #     lines = file_text.splitlines()
-    #     snippet = "\n".join(
-    #         f"{ln:>4}: {lines[ln-1]}" for ln in changed if 0 < ln <= len(lines)
-    #     )
-    # else:
-    #     snippet = file_text[:4_000]  # fallback / truncate if diff missing
+    state.update({
+        "current_file": fname,
+        "current_file_content": file_text,
+        "current_file_lines_changed": lines_changed
+    })
 
-    # ── 3) Ask the LLM for a review ────────────────────────────────────────
-    prompt = HumanMessage(
-        content=(
-            "You are a senior Python reviewer.\n\n"
-            f"File: {fpath}\n"
-            f"Modified lines: {lines_changed}\n\n"
-            "You may review other parts of the file **only if they are directly impacted by the modified lines**.\n"
-            "Do **not** comment on unrelated or unmodified parts of the file.\n"
-            "Focus your review on how the modified lines affect the file's overall functionality, readability, performance, reliability, or security.\n\n"
-            "Provide **only high-impact recommendations**, avoiding cosmetic or low-value style suggestions.\n\n"
-            "List **at most 3** recommendations.\n"
-            "If there are no high-value suggestions, return an array with one object that includes the filename and an empty recommendations list.\n\n"
-            "**Do not explain, justify, or include any text outside the JSON array. Return only the JSON array.**\n\n"
-            "Output format:\n"
-            "[\n"
-            "  {\n"
-            "    \"file\": \"<filename>\",\n"
-            "    \"recommendations\": [\"...\", \"...\"]\n"
-            "  }\n"
-            "]\n\n"
-            f"File contents:\n{file_text}"
-        )
-    )
+    prompt = HumanMessage(content=(
+        "You are a senior Python reviewer.\n\n"
+        f"File: {fpath}\n"
+        f"Modified lines: {lines_changed}\n\n"
+        "Review only sections directly impacted by the modifications. "
+        "Provide up to 3 high-impact recommendations in JSON array only.\n\n"
+        "Output format:\n"
+        "[{'file':'<filename>','recommendations':['...','...']}]\n\n"
+        f"File contents:\n{file_text}"
+    ))
+    state.setdefault("messages", []).append(prompt)
+    logger.info("💬 Sending review prompt to LLM")
     response = llm.invoke([prompt])
-
-    # ── 5) Save conversation + latest review text ──────────────────────────
-    state.setdefault("messages", []).extend([prompt, response])
-
-    print("response", response)
+    logger.info("✅ LLM response received")
+    state["messages"].append(response)
 
     try:
         parsed = json.loads(response.content.strip())
     except json.JSONDecodeError as e:
-        print("Failed to parse JSON:", e)
-        parsed = []  # fallback
-    state.setdefault("recommendations", []).extend(parsed)
+        msg = f"❌ Failed to parse JSON: {e}"
+        logger.error(msg)
+        parsed = []
 
+    state.setdefault("recommendations", []).extend(parsed)
     return state
 
+
 def apply_recommendations_with_mcp(llm_with_tools, state: DevAgentState) -> DevAgentState:
-    if not state["recommendations"]:
+    recs_list = state.get("recommendations", [])
+    if not recs_list:
+        logger.info("✅ No recommendations to apply. Skipping.")
         return state
 
-    current_rec = state["recommendations"].pop(0)
-    file_path = Path(current_rec["file"])
-    recs = current_rec.get("recommendations", [])
+    current = recs_list.pop(0)
+    file_path = Path(current.get("file", ""))
+    recs      = current.get("recommendations", [])
 
-    if not recs or not file_path.exists():
+    if not recs:
+        logger.warning(f"❌ No recommendations for {file_path}")
+        return state
+    if not file_path.exists():
+        logger.error(f"❌ File not found: {file_path}")
         return state
 
     file_text = file_path.read_text(encoding="utf-8")
-    instructions = "\n".join(f"- {r}" for r in recs)
+    logger.info(f"🔍 Applying {len(recs)} recommendations to {file_path.name}")
 
-    prompt = (
-        f"You are a coding assistant. A user has asked for edits to a source file.\n\n"
+    instructions = "\n".join(f"- {r}" for r in recs)
+    prompt = HumanMessage(content=(
+        "You are a coding assistant. A user requested edits to a source file.\n\n"
         f"File path: {file_path}\n\n"
         f"File contents:\n{file_text}\n\n"
         f"Requested changes:\n{instructions}\n\n"
-        f"Decide which tool to call from your available toolset to perform these changes. "
-        f"Only return the tool invocation with no explanation."
-    )
+        "Choose and invoke a tool from your toolkit. Return only the invocation."
+    ))
+    state.setdefault("messages", []).append(prompt)
+    logger.info("💬 Invoking LLM with tools")
 
-    # Let the LLM choose the tool to call
-    result = llm_with_tools.invoke([HumanMessage(content=prompt)])
+    result = llm_with_tools.invoke([prompt])
+    logger.info("✅ Received tool invocation from LLM")
+    state["messages"].append(result)
 
-    print(result)
-
-    state.setdefault("messages", []).append(
-        HumanMessage(content=f"Processed {file_path.name} via LLM tool choice.")
-    )
     state.setdefault("updated_files", []).append(str(file_path))
-
-    print(f"Remaining recommendations: {state.get('recommendations', [])}")
-
+    logger.info(f"✅ Applied recommendations to {file_path.name}; {len(recs_list)} remaining")
     return state
+
+def create_branch( state: DevAgentState) -> DevAgentState:
+    repo_path = state.get("repo_path", "").strip()
+    branch   = state.get("repo_branch", "").strip()
+
+    cloned_repo = Repo(repo_path)
+
+    if not repo_path:
+        msg = "❌ Error: No repository path provided."
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    if not branch:
+        msg = "❌ Error: No repository branch provided."
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    try:
+        repo = Repo(repo_path)
+    except (NoSuchPathError, InvalidGitRepositoryError) as e:
+        msg = f"❌ Error: Cannot open repo at '{repo_path}': {e}"
+        logger.error(msg)
+        return {"messages":[HumanMessage(content=msg)]}
+
+    new_branch = f"critiquely/{branch}-improvements-{random.randint(1000, 9999)}"
+    try:
+        logger.info(f"🔄 Creating a new branch: {new_branch}")
+        new_branch = cloned_repo.create_head(new_branch)
+        new_branch.checkout()
+
+        msg = f"✅ New branch created: {new_branch}"
+        logger.info(msg)
+        return {"new_branch": new_branch, "messages": [HumanMessage(content=msg)]}
+
+    except GitCommandError as exc:
+        error = f"❌ Failed to create {new_branch}: {exc}"
+        logger.error(error)
+        return {"messages": [HumanMessage(content=error)]}
