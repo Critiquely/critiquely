@@ -215,3 +215,43 @@ def create_branch( state: DevAgentState) -> DevAgentState:
         error = f"❌ Failed to create {new_branch}: {exc}"
         logger.error(error)
         return {"messages": [HumanMessage(content=error)]}
+
+# --- Node: Create Branch ---
+def push_code( state: DevAgentState) -> DevAgentState:
+    repo_path = state.get("repo_path", "").strip()
+    branch   = state.get("new_branch", "")
+
+    if not repo_url:
+        msg = "❌ Error: No repository URL provided."
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    if not repo_path:
+        msg = "❌ Error: No repository path provided."
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    if not branch:
+        msg = "❌ Error: No repository branch provided."
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    try:
+        repo = Repo(repo_path)
+    except (NoSuchPathError, InvalidGitRepositoryError) as e:
+        msg = f"❌ Error: Cannot open repo at '{repo_path}': {e}"
+        logger.error(msg)
+        return {"messages":[HumanMessage(content=msg)]}
+
+    try:
+        logger.info(f"🔄 Pushing code to {new_branch}")
+        repo.push()
+
+        msg = f"✅ Pushed code to {new_branch}"
+        logger.info(msg)
+        return {"new_branch": new_branch, "messages": [HumanMessage(content=msg)]}
+
+    except GitCommandError as exc:
+        error = f"❌ Failed to push to {new_brnach}: {exc}"
+        logger.error(error)
+        return {"messages": [HumanMessage(content=error)]}

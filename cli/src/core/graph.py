@@ -9,7 +9,7 @@ from langgraph.prebuilt import ToolNode
 from langgraph.checkpoint.memory import MemorySaver
 
 
-from src.core.nodes import clone_repo, inspect_files, route_tools, apply_recommendations_with_mcp, create_branch
+from src.core.nodes import clone_repo, inspect_files, route_tools, apply_recommendations_with_mcp, create_branch, push_code
 from src.core.state import DevAgentState
 
 async def build_graph():
@@ -32,6 +32,7 @@ async def build_graph():
         graph_builder.add_node("inspect_files", partial(inspect_files,llm))
         graph_builder.add_node("tool_call", tool_node)
         graph_builder.add_node("apply_recommendations", partial(apply_recommendations_with_mcp, llm_with_tools))
+        graph_builder.add_node("push_code", push_code)
 
 
         graph_builder.set_entry_point("clone_repo")
@@ -50,7 +51,7 @@ async def build_graph():
             route_tools,
             {
                 "tools": "tool_call",  # back into the node
-                END: END,                           # finish when empty
+                END: "push_code",                           # finish when empty
             },
         )
         graph_builder.add_edge("tool_call", "apply_recommendations")
