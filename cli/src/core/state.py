@@ -13,5 +13,6 @@ class DevAgentState(TypedDict):
     current_file: Optional[str]
     current_file_content: Optional[str]
     current_file_lines_changed: Optional[str]
+    current_recommendation: Optional[dict]
     last_file_reviewed: str
     recommendations: list[dict]

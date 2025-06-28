@@ -16,13 +16,26 @@ logger = logging.getLogger(__name__)
 
 def get_state_value(state: DevAgentState, key: str) -> str:
     """Raise a ValueError if state[key] is missing/empty after strip()."""
-    val = state.get(key, "")
-    if not isinstance(val, str) or not val.strip():
-        msg = f"❌ {key} not found in state."
+    if key not in state:
+        msg = f"❌ '{key}' missing from state."
+        logger.error(msg)
+        raise KeyError(msg)
+
+    val = state[key]
+
+    if val is None:
+        msg = f"❌ '{key}' is None."
         logger.error(msg)
         raise ValueError(msg)
-    
-    return val.strip()
+
+    if isinstance(val, str):
+        val = val.strip()
+        if val == "":
+            msg = f"❌ '{key}' is blank."
+            logger.error(msg)
+            raise ValueError(msg)
+
+    return val
 
 def create_github_https_url(https_url: str, token_env="GITHUB_TOKEN") -> str:
     token = os.getenv(token_env, "").strip()
@@ -134,8 +147,11 @@ def commit_code(state: DevAgentState) -> DevAgentState:
     repo_path = get_state_value(state, "repo_path")
     branch = get_state_value(state, "new_branch")
     repo_url = get_state_value(state, "repo_url")
+    current_recommendation = get_state_value(state, "current_recommendation")
+    print(current_recommendation)
 
     git_url = create_github_https_url(repo_url)
+    recommendation_summary = current_recommendation.get("summary", [])
 
     # 2) Open the repo
     try:
@@ -154,7 +170,7 @@ def commit_code(state: DevAgentState) -> DevAgentState:
         # Stage all changes (new, modified, deleted)
         repo.git.add("--all")
         # Create a commit
-        repo.index.commit(f"chore: updates on {branch}")
+        repo.index.commit(recommendation_summary)
         msg = f"📝 Committed changes to '{branch}'"
         logger.info(msg)
         return {"messages": [HumanMessage(content=msg)]}
@@ -168,6 +184,40 @@ def push_code(state: DevAgentState) -> DevAgentState:
     repo_path = get_state_value(state, "repo_path")
     branch = get_state_value(state, "new_branch")
     repo_url = get_state_value(state, "repo_url")
+
+    git_url = create_github_https_url(repo_url)
+
+    # 2) Open the repo
+    try:
+        repo = Repo(repo_path)
+    except (NoSuchPathError, InvalidGitRepositoryError) as e:
+        msg = f"❌ Error: Cannot open repo at '{repo_path}': {e}"
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    # 3) Inject token into the origin URL
+    origin = repo.remote(name="origin")
+    origin.set_url(git_url)
+
+    # 4) Push
+    try:
+        logger.info(f"🔄 Pushing branch '{branch}' to origin")
+        origin.push(refspec=f"{branch}:{branch}")
+        msg = f"✅ Pushed branch '{branch}' to origin"
+        logger.info(msg)
+        return {"new_branch": branch, "messages": [HumanMessage(content=msg)]}
+
+    except GitCommandError as exc:
+        error = f"❌ Failed to push to '{branch}': {exc}"
+        logger.error(error)
+        return {"messages": [HumanMessage(content=error)]}
+
+# --- Node: Push Code ---
+def pr_code(state: DevAgentState) -> DevAgentState:
+    repo_url = get_state_value(state, "repo_url")
+    repo_path = get_state_value(state, "repo_path")
+    original_branch = get_state_value(state, "repo_branch")
+    new_branch = get_state_value(state, "new_branch")
 
     git_url = create_github_https_url(repo_url)
 
@@ -233,7 +283,8 @@ def inspect_files(llm, state: DevAgentState) -> dict:
         "Review only sections directly impacted by the modifications. "
         "Provide up to 3 high-impact recommendations in JSON array only.\n\n"
         "Output format:\n"
-        "[{'file':'<filename>','recommendations':['...','...']}]\n\n"
+        "[{'file':'<filename>','summary':'<github commit style summary using conventional commit syntax>','recommendation':'<recommendation>'},{'file':'<filename>','summary':'<github commit style summary>','recommendation':'<recommendation>'}]\n\n"
+        "You can have multiple objects for a specific file if there are multple recommendations\n\n"
         f"File contents:\n{file_text}"
     ))
     state.setdefault("messages", []).append(prompt)
@@ -260,8 +311,9 @@ def apply_recommendations_with_mcp(llm_with_tools, state: DevAgentState) -> DevA
         return state
 
     current = recs_list.pop(0)
+    state.update({"current_recommendation": current})
     file_path = Path(current.get("file", ""))
-    recs      = current.get("recommendations", [])
+    recs      = current.get("recommendation", [])
 
     if not recs:
         logger.warning(f"❌ No recommendations for {file_path}")
@@ -271,7 +323,7 @@ def apply_recommendations_with_mcp(llm_with_tools, state: DevAgentState) -> DevA
         return state
 
     file_text = file_path.read_text(encoding="utf-8")
-    logger.info(f"🔍 Applying {len(recs)} recommendations to {file_path.name}")
+    logger.info(f"🔍 Applying recommendation to {file_path.name}")
 
     instructions = "\n".join(f"- {r}" for r in recs)
     prompt = HumanMessage(content=(
