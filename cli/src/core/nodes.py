@@ -221,11 +221,6 @@ def push_code( state: DevAgentState) -> DevAgentState:
     repo_path = state.get("repo_path", "").strip()
     branch   = state.get("new_branch", "")
 
-    if not repo_url:
-        msg = "❌ Error: No repository URL provided."
-        logger.error(msg)
-        return {"messages": [HumanMessage(content=msg)]}
-
     if not repo_path:
         msg = "❌ Error: No repository path provided."
         logger.error(msg)
