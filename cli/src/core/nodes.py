@@ -14,7 +14,38 @@ from src.core.state import DevAgentState
 # Use the root logger configuration from CLI
 logger = logging.getLogger(__name__)
 
+def get_state_value(state: DevAgentState, key: str) -> str:
+    """Raise a ValueError if state[key] is missing/empty after strip()."""
+    val = state.get(key, "")
+    if not isinstance(val, str) or not val.strip():
+        msg = f"❌ {key} not found in state."
+        logger.error(msg)
+        raise ValueError(msg)
+    
+    return val.strip()
 
+def create_github_https_url(https_url: str, token_env="GITHUB_TOKEN") -> str:
+    token = os.getenv(token_env, "").strip()
+    if not token:
+        msg = "❌ Error: GITHUB_TOKEN is unset or empty."
+        logger.error(msg)
+        raise ValueError(msg)
+    if not https_url.startswith("https://"):
+        msg = "❌ Error: SSH URL has been provided. The app will not handle these.."
+        logger.error(msg)
+        raise ValueError(msg)
+
+    parts = urlparse(https_url)
+    auth = quote(token, safe="")
+    url  = urlunparse(parts._replace(netloc=f"{auth}@{parts.netloc}"))
+
+    return url
+
+###############################################################################
+#                                R O U T E R S                                #
+###############################################################################
+
+# --- Node: Route to tools ---
 def route_tools(state: DevAgentState):
     """
     Route to the ToolNode if the last message has tool calls; otherwise END.
@@ -38,37 +69,22 @@ def route_tools(state: DevAgentState):
     logger.info("🏁 Routing to END node")
     return END
 
+###############################################################################
+#                                G I T   N O D E S                            #
+###############################################################################
+
 # --- Node: Clone Repo ---
 def clone_repo(state: DevAgentState) -> dict:
-    repo_url = state.get("repo_url", "").strip()
-    branch   = state.get("repo_branch", "").strip()
+    repo_url = get_state_value(state, "repo_url")
+    branch = get_state_value(state, "repo_branch")
 
-    if not repo_url:
-        msg = "❌ Error: No repository URL provided."
-        logger.error(msg)
-        return {"messages": [HumanMessage(content=msg)]}
-
-    if not branch:
-        msg = "❌ Error: No repository branch provided."
-        logger.error(msg)
-        return {"messages": [HumanMessage(content=msg)]}
-
-    token = os.environ.get("GITHUB_TOKEN", "").strip()
-    if not token:
-        msg = "❌ Error: GITHUB_TOKEN is unset or empty."
-        logger.error(msg)
-        return {"messages": [HumanMessage(content=msg)]}
-
-    # Percent-encode and inject token
-    token_enc = quote(token, safe="")
-    parsed    = urlparse(repo_url)
-    auth_url  = urlunparse(parsed._replace(netloc=f"{token_enc}@{parsed.netloc}"))
+    git_url = create_github_https_url(repo_url)
 
     try:
-        temp_dir = tempfile.mkdtemp()
+        temp_dir = tempfile.mkdtemp(dir="/tmp")
         logger.info(f"🔄 Cloning {repo_url}@{branch} into {temp_dir}")
         repo = Repo.clone_from(
-            auth_url,
+            git_url,
             temp_dir,
             branch=branch,
             depth=1,
@@ -86,6 +102,103 @@ def clone_repo(state: DevAgentState) -> dict:
         logger.error(error)
         return {"messages": [HumanMessage(content=error)]}
 
+# --- Node: Create Branch ---
+def create_branch( state: DevAgentState) -> DevAgentState:
+    repo_path = get_state_value(state, "repo_path")
+    branch = get_state_value(state, "repo_branch")
+
+    try:
+        repo = Repo(repo_path)
+    except (NoSuchPathError, InvalidGitRepositoryError) as e:
+        msg = f"❌ Error: Cannot open repo at '{repo_path}': {e}"
+        logger.error(msg)
+        return {"messages":[HumanMessage(content=msg)]}
+
+    branch_name = f"critiquely/{branch}-improvements-{uuid4().hex[:8]}"
+    try:
+        logger.info(f"🔄 Creating a new branch: {branch_name}")
+        branch = repo.create_head(branch_name)
+        branch.checkout()
+
+        msg = f"✅ New branch created: {branch_name}"
+        logger.info(msg)
+        return {"new_branch": branch_name, "messages": [HumanMessage(content=msg)]}
+
+    except GitCommandError as exc:
+        error = f"❌ Failed to create {branch_name}: {exc}"
+        logger.error(error)
+        return {"messages": [HumanMessage(content=error)]}
+
+# --- Node: Create Branch ---
+def commit_code(state: DevAgentState) -> DevAgentState:
+    repo_path = get_state_value(state, "repo_path")
+    branch = get_state_value(state, "new_branch")
+    repo_url = get_state_value(state, "repo_url")
+
+    git_url = create_github_https_url(repo_url)
+
+    # 2) Open the repo
+    try:
+        repo = Repo(repo_path)
+    except (NoSuchPathError, InvalidGitRepositoryError) as e:
+        msg = f"❌ Error: Cannot open repo at '{repo_path}': {e}"
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    # 3) Inject token into the origin URL
+    origin = repo.remote(name="origin")
+    origin.set_url(git_url)
+
+    # Stage & commit
+    try:
+        # Stage all changes (new, modified, deleted)
+        repo.git.add("--all")
+        # Create a commit
+        repo.index.commit(f"chore: updates on {branch}")
+        msg = f"📝 Committed changes to '{branch}'"
+        logger.info(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+    except GitCommandError as exc:
+        msg = f"❌ Failed to add/commit changes: {exc}"
+        logger.error(msg)
+        return {"messages":[HumanMessage(content=msg)]}
+
+# --- Node: Push Code ---
+def push_code(state: DevAgentState) -> DevAgentState:
+    repo_path = get_state_value(state, "repo_path")
+    branch = get_state_value(state, "new_branch")
+    repo_url = get_state_value(state, "repo_url")
+
+    git_url = create_github_https_url(repo_url)
+
+    # 2) Open the repo
+    try:
+        repo = Repo(repo_path)
+    except (NoSuchPathError, InvalidGitRepositoryError) as e:
+        msg = f"❌ Error: Cannot open repo at '{repo_path}': {e}"
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    # 3) Inject token into the origin URL
+    origin = repo.remote(name="origin")
+    origin.set_url(git_url)
+
+    # 4) Push
+    try:
+        logger.info(f"🔄 Pushing branch '{branch}' to origin")
+        origin.push(refspec=f"{branch}:{branch}")
+        msg = f"✅ Pushed branch '{branch}' to origin"
+        logger.info(msg)
+        return {"new_branch": branch, "messages": [HumanMessage(content=msg)]}
+
+    except GitCommandError as exc:
+        error = f"❌ Failed to push to '{branch}': {exc}"
+        logger.error(error)
+        return {"messages": [HumanMessage(content=error)]}
+
+###############################################################################
+#                                L L M   N O D E S                            #
+###############################################################################
 
 # --- Node: Inspect Files ---
 def inspect_files(llm, state: DevAgentState) -> dict:
@@ -178,111 +291,3 @@ def apply_recommendations_with_mcp(llm_with_tools, state: DevAgentState) -> DevA
     state.setdefault("updated_files", []).append(str(file_path))
     logger.info(f"✅ Applied recommendations to {file_path.name}; {len(recs_list)} remaining")
     return state
-
-# --- Node: Create Branch ---
-def create_branch( state: DevAgentState) -> DevAgentState:
-    repo_path = state.get("repo_path", "").strip()
-    branch   = state.get("repo_branch", "").strip()
-
-    if not repo_path:
-        msg = "❌ Error: No repository path provided."
-        logger.error(msg)
-        return {"messages": [HumanMessage(content=msg)]}
-
-    if not branch:
-        msg = "❌ Error: No repository branch provided."
-        logger.error(msg)
-        return {"messages": [HumanMessage(content=msg)]}
-
-    try:
-        repo = Repo(repo_path)
-    except (NoSuchPathError, InvalidGitRepositoryError) as e:
-        msg = f"❌ Error: Cannot open repo at '{repo_path}': {e}"
-        logger.error(msg)
-        return {"messages":[HumanMessage(content=msg)]}
-
-    branch_name = f"critiquely/{branch}-improvements-{uuid4().hex[:8]}"
-    try:
-        logger.info(f"🔄 Creating a new branch: {branch_name}")
-        branch = repo.create_head(branch_name)
-        branch.checkout()
-
-        msg = f"✅ New branch created: {branch_name}"
-        logger.info(msg)
-        return {"new_branch": branch_name, "messages": [HumanMessage(content=msg)]}
-
-    except GitCommandError as exc:
-        error = f"❌ Failed to create {branch_name}: {exc}"
-        logger.error(error)
-        return {"messages": [HumanMessage(content=error)]}
-
-# --- Node: Create Branch ---
-def push_code(state: DevAgentState) -> DevAgentState:
-    repo_path = state.get("repo_path", "").strip()
-    branch    = state.get("new_branch", "")
-    repo_url  = state.get("repo_url", "").strip()
-
-    # 1) Validate inputs
-    if not repo_url:
-        msg = "❌ Error: No repository URL provided."
-        logger.error(msg)
-        return {"messages": [HumanMessage(content=msg)]}
-    if not repo_path:
-        msg = "❌ Error: No repository path provided."
-        logger.error(msg)
-        return {"messages": [HumanMessage(content=msg)]}
-    if not branch:
-        msg = "❌ Error: No repository branch provided."
-        logger.error(msg)
-        return {"messages": [HumanMessage(content=msg)]}
-
-    token = os.environ.get("GITHUB_TOKEN", "").strip()
-    if not token:
-        msg = "❌ Error: GITHUB_TOKEN is unset or empty."
-        logger.error(msg)
-        return {"messages": [HumanMessage(content=msg)]}
-
-    # 2) Open the repo
-    try:
-        repo = Repo(repo_path)
-    except (NoSuchPathError, InvalidGitRepositoryError) as e:
-        msg = f"❌ Error: Cannot open repo at '{repo_path}': {e}"
-        logger.error(msg)
-        return {"messages": [HumanMessage(content=msg)]}
-
-    # 3) Inject token into the origin URL
-    origin = repo.remote(name="origin")
-    url = repo_url if repo_url else origin.url
-    if url.startswith("https://"):
-        token_enc = quote(token, safe="")
-        parts     = urlparse(url)
-        auth_netloc = f"{token_enc}@{parts.netloc}"
-        auth_url  = urlunparse(parts._replace(netloc=auth_netloc))
-        origin.set_url(auth_url)
-    else:
-        logger.warning("Origin URL is not HTTPS, skipping token injection.")
-
-    # Stage & commit
-    try:
-        # Stage all changes (new, modified, deleted)
-        repo.git.add("--all")
-        # Create a commit
-        repo.index.commit(f"chore: updates on {branch}")
-        logger.info(f"📝 Committed changes")
-    except GitCommandError as exc:
-        msg = f"❌ Failed to add/commit changes: {exc}"
-        logger.error(msg)
-        return {"messages":[HumanMessage(content=msg)]}
-
-    # 4) Push
-    try:
-        logger.info(f"🔄 Pushing branch '{branch}' to origin")
-        origin.push(refspec=f"{branch}:{branch}")
-        msg = f"✅ Pushed branch '{branch}' to origin"
-        logger.info(msg)
-        return {"new_branch": branch, "messages": [HumanMessage(content=msg)]}
-
-    except GitCommandError as exc:
-        error = f"❌ Failed to push to '{branch}': {exc}"
-        logger.error(error)
-        return {"messages": [HumanMessage(content=error)]}

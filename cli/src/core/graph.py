@@ -1,40 +1,69 @@
-
-from langgraph.graph import StateGraph, END
 from functools import partial
-from src.tools.mcp import get_mcp_client
-from langchain_anthropic import ChatAnthropic
+from pathlib import Path
+from typing import Optional
 
+from langchain_anthropic import ChatAnthropic
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 
-from langgraph.checkpoint.memory import MemorySaver
-
-
-from src.core.nodes import clone_repo, inspect_files, route_tools, apply_recommendations_with_mcp, create_branch, push_code
+from src.core.nodes import (
+    apply_recommendations_with_mcp,
+    clone_repo,
+    commit_code,
+    create_branch,
+    inspect_files,
+    push_code,
+    route_tools,
+)
 from src.core.state import DevAgentState
+from src.tools.mcp import get_mcp_client
 
-async def build_graph():
-    async with get_mcp_client() as client:  # ✅ This is correct
+# ───────────────────────── Routing helpers ──────────────────────────
+
+
+def route_more(state: DevAgentState) -> str:
+    """Keep inspecting until the modified-file list is empty."""
+    return "inspect_files" if state.get("modified_files") else END
+
+
+def route_after_tool_call(state: DevAgentState) -> str:
+    """
+    If the previous tool interaction produced edits, go commit them;
+    otherwise continue to push.
+    """
+    
+    return "commit_code" if state.get("tool_outputs") else "push_code"
+
+
+async def build_graph(
+    *,
+    llm_model: str = "claude-3-5-sonnet-latest",
+    checkpointer: Optional[object] = None,
+):
+    async with get_mcp_client() as client:
         tools = await client.get_tools()
-        llm = ChatAnthropic(model="claude-3-5-sonnet-latest")
+        llm = ChatAnthropic(model=llm_model)
         llm_with_tools = llm.bind_tools(tools)
 
         memory = MemorySaver()
 
         graph_builder = StateGraph(DevAgentState)
-
-        def route_more(state: DevAgentState):
-            return "inspect_files" if state["modified_files"] else END
-
         tool_node = ToolNode(tools)
 
+       # ── Nodes ──
         graph_builder.add_node("clone_repo", clone_repo)
         graph_builder.add_node("create_branch", create_branch)
-        graph_builder.add_node("inspect_files", partial(inspect_files,llm))
+        graph_builder.add_node("inspect_files", partial(inspect_files, llm))
         graph_builder.add_node("tool_call", tool_node)
-        graph_builder.add_node("apply_recommendations", partial(apply_recommendations_with_mcp, llm_with_tools))
+        graph_builder.add_node(
+            "apply_recommendations",
+            partial(apply_recommendations_with_mcp, llm_with_tools),
+        )
         graph_builder.add_node("push_code", push_code)
+        graph_builder.add_node("commit_code", commit_code)
 
-
+        # ── Edges ──
         graph_builder.set_entry_point("clone_repo")
         graph_builder.add_edge("clone_repo", "create_branch")
         graph_builder.add_edge("create_branch", "inspect_files")
@@ -54,8 +83,10 @@ async def build_graph():
                 END: "push_code",                           # finish when empty
             },
         )
-        graph_builder.add_edge("tool_call", "apply_recommendations")
+        graph_builder.add_edge("tool_call", "commit_code")
+        graph_builder.add_edge("commit_code", "apply_recommendations")
 
+        # ── Compile ──
         graph = graph_builder.compile(checkpointer=memory)
 
         try:
