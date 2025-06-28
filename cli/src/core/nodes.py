@@ -262,6 +262,18 @@ def push_code(state: DevAgentState) -> DevAgentState:
     else:
         logger.warning("Origin URL is not HTTPS, skipping token injection.")
 
+    # Stage & commit
+    try:
+        # Stage all changes (new, modified, deleted)
+        repo.git.add("--all")
+        # Create a commit
+        repo.index.commit(f"chore: updates on {branch}")
+        logger.info(f"📝 Committed changes")
+    except GitCommandError as exc:
+        msg = f"❌ Failed to add/commit changes: {exc}"
+        logger.error(msg)
+        return {"messages":[HumanMessage(content=msg)]}
+
     # 4) Push
     try:
         logger.info(f"🔄 Pushing branch '{branch}' to origin")
