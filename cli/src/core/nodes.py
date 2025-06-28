@@ -239,12 +239,14 @@ def push_code( state: DevAgentState) -> DevAgentState:
         return {"messages":[HumanMessage(content=msg)]}
 
     try:
-        logger.info(f"🔄 Pushing code to {new_branch}")
-        repo.push()
+        logger.info(f"🔄 Pushing code to {branch}")
+        origin = repo.remote(name="origin")
+        # Push local branch X to remote branch X
+        origin.push(refspec=f"{branch}:{branch}")
 
-        msg = f"✅ Pushed code to {new_branch}"
+        msg = f"✅ Pushed code to {branch}"
         logger.info(msg)
-        return {"new_branch": new_branch, "messages": [HumanMessage(content=msg)]}
+        return {"new_branch": branch, "messages": [HumanMessage(content=msg)]}
 
     except GitCommandError as exc:
         error = f"❌ Failed to push to {new_brnach}: {exc}"
