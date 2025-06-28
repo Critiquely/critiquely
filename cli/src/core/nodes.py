@@ -5,7 +5,7 @@ import os
 import logging
 from urllib.parse import urlparse, urlunparse, quote
 from pathlib import Path
-from git import Repo, GitCommandError
+from git import Repo, GitCommandError, NoSuchPathError, InvalidGitRepositoryError
 
 from langgraph.graph import END
 from langchain_core.messages import HumanMessage
@@ -14,6 +14,8 @@ from src.core.state import DevAgentState
 # Use the root logger configuration from CLI
 logger = logging.getLogger(__name__)
 
+
+# --- Node: Routing ---
 
 def route_tools(state: DevAgentState):
     """
@@ -38,7 +40,8 @@ def route_tools(state: DevAgentState):
     logger.info("🏁 Routing to END node")
     return END
 
-# --- Node: Clone Repo ---
+# --- Git Operations Nodes ---
+
 def clone_repo(state: DevAgentState) -> dict:
     repo_url = state.get("repo_url", "").strip()
     branch   = state.get("repo_branch", "").strip()
@@ -216,7 +219,6 @@ def create_branch( state: DevAgentState) -> DevAgentState:
         logger.error(error)
         return {"messages": [HumanMessage(content=error)]}
 
-# --- Node: Create Branch ---
 def push_code(state: DevAgentState) -> DevAgentState:
     repo_path = state.get("repo_path", "").strip()
     branch    = state.get("new_branch", "")

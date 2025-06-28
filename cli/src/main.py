@@ -4,6 +4,7 @@ import asyncio
 import click
 import logging
 import os
+import sys
 
 
 from src.core.review import run_review_graph
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> None:
     """Run the code review CLI."""
 
-    async def run():
+    async def run() -> None:
         if not (token := os.environ.get("GITHUB_TOKEN", "").strip()):
             logger.error("❌ GITHUB_TOKEN is unset or empty")
             sys.exit(1)
@@ -53,7 +54,14 @@ def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> 
         except Exception as e:
             logger.error(f"❌ Code review failed: {e}", exc_info=True)
 
-    asyncio.run(run())
+    try:
+        asyncio.run(run())
+    except asyncio.CancelledError:
+        logger.error("❌ Async operation was cancelled")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"❌ Async runtime error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
