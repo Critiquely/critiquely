@@ -5,17 +5,31 @@ from langchain_core.messages import AnyMessage
 
 
 class DevAgentState(TypedDict):
+    """
+    Shared state passed between LangGraph nodes during DevAgent execution.
+    """
+
     messages: Annotated[list[AnyMessage], operator.add]
+
+    # Repository details
     repo_url: str
-    repo_branch: str
-    repo_path: Optional[str]
+    base_branch: str
     new_branch: Optional[str]
+
+    # File Details
+    clone_path: Optional[str]
     modified_files: list[dict]
-    current_file: Optional[str]
-    current_file_content: Optional[str]
-    current_file_lines_changed: Optional[str]
+
+    # Recommendation Details
     current_recommendation: Optional[dict]
-    last_file_reviewed: str
     recommendations: list[dict]
+
+    # PR Details
     pr_number: Optional[str]
     pr_url: Optional[str]
+
+    # Tracking Information - Used during bot execution
+    active_file_name: Optional[str]
+    active_file_content: Optional[str]
+    active_file_lines_changed: Optional[str]
+    last_reviewed_file: Optional[str]

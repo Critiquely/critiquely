@@ -2,7 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from typing import AsyncGenerator
-from src.utils.fs_utils import get_temp_dir
+from src.utils.fs import get_temp_dir
 
 
 class CodeReviewError(Exception):

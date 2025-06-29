@@ -9,7 +9,7 @@ def get_temp_dir() -> str:
         str: Resolved path to the OS-specific temporary directory
     """
     try:
-        temp_path = pathlib.Path(tempfile.gettempdir())
-        return str(temp_path.resolve())
+        clone_path = pathlib.Path(tempfile.gettempdir())
+        return str(clone_path.resolve())
     except (OSError, RuntimeError):
         return tempfile.gettempdir()

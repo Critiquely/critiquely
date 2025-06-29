@@ -9,12 +9,12 @@ from langchain_core.tools import tool, ToolException
 
 
 @tool
-def local_git_push(repo_path: str, branch: str) -> str:
+def local_git_push(path: str, branch: str) -> str:
     """
     Pushes the specified branch to the remote origin using GitPython.
 
     Args:
-        repo_path: Path to the local Git repository.
+        path: Path to the local Git repository.
         branch: Name of the branch to push.
 
     Returns:
@@ -24,9 +24,9 @@ def local_git_push(repo_path: str, branch: str) -> str:
         ToolException if the push fails.
     """
     try:
-        repo = Repo(repo_path)
+        repo = Repo(path)
     except InvalidGitRepositoryError:
-        raise ToolException(f"{repo_path} is not a valid Git repository")
+        raise ToolException(f"{path} is not a valid Git repository")
 
     try:
         origin = repo.remote(name="origin")

@@ -5,7 +5,6 @@ import click
 import logging
 import os
 
-
 from src.core.review import run_review_graph
 
 logging.basicConfig(
@@ -44,7 +43,7 @@ def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> 
         try:
             result = await run_review_graph(
                 repo_url=repo_url,
-                repo_branch=branch,
+                base_branch=branch,
                 modified_files=modified_files,
             )
             click.echo(result)

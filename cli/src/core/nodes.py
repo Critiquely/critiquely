@@ -6,14 +6,14 @@ import logging
 from urllib.parse import urlparse, urlunparse, quote
 from pathlib import Path
 
-from git import Repo, GitCommandError
+from git import Repo, GitCommandError, InvalidGitRepositoryError, NoSuchPathError
 from github import Github
 from github import Auth
 
 from langgraph.graph import END
 from langchain_core.messages import HumanMessage
 from src.core.state import DevAgentState
-from src.utils.fs_utils import get_temp_dir
+from src.utils.fs import get_temp_dir
 
 # Use the root logger configuration from CLI
 logger = logging.getLogger(__name__)
@@ -62,36 +62,6 @@ def create_github_https_url(https_url: str, token_env="GITHUB_TOKEN") -> str:
 
 
 ###############################################################################
-#                                R O U T E R S                                #
-###############################################################################
-
-
-# --- Node: Route to tools ---
-def route_tools(state: DevAgentState):
-    """
-    Route to the ToolNode if the last message has tool calls; otherwise END.
-    """
-    if isinstance(state, list):
-        ai_message = state[-1]
-    elif messages := state.get("messages", []):
-        ai_message = messages[-1]
-    else:
-        error = f"No messages found to route: {state}"
-        logger.error(f"❌ {error}")
-        raise ValueError(error)
-
-    has_tools = bool(getattr(ai_message, "tool_calls", None))
-
-    if has_tools:
-        tool_name = ai_message.tool_calls[0]["name"]
-        logger.info(f"🚀 Routing to tool: {tool_name}")
-        return "tools"
-
-    logger.info("🏁 Routing to END node")
-    return END
-
-
-###############################################################################
 #                                G I T   N O D E S                            #
 ###############################################################################
 
@@ -99,7 +69,7 @@ def route_tools(state: DevAgentState):
 # --- Node: Clone Repo ---
 def clone_repo(state: DevAgentState) -> dict:
     repo_url = get_state_value(state, "repo_url")
-    branch = get_state_value(state, "repo_branch")
+    branch = get_state_value(state, "base_branch")
 
     git_url = create_github_https_url(repo_url)
 
@@ -114,7 +84,7 @@ def clone_repo(state: DevAgentState) -> dict:
 
         msg = f"✅ Cloned {repo_url}@{branch} to {temp_dir}"
         logger.info(msg)
-        return {"repo_path": temp_dir, "messages": [HumanMessage(content=msg)]}
+        return {"clone_path": temp_dir, "messages": [HumanMessage(content=msg)]}
 
     except GitCommandError as exc:
         error = f"❌ Failed to clone {repo_url}@{branch}: {exc}"
@@ -124,13 +94,13 @@ def clone_repo(state: DevAgentState) -> dict:
 
 # --- Node: Create Branch ---
 def create_branch(state: DevAgentState) -> DevAgentState:
-    repo_path = get_state_value(state, "repo_path")
-    branch = get_state_value(state, "repo_branch")
+    clone_path = get_state_value(state, "clone_path")
+    branch = get_state_value(state, "base_branch")
 
     try:
-        repo = Repo(repo_path)
+        repo = Repo(clone_path)
     except (NoSuchPathError, InvalidGitRepositoryError) as e:
-        msg = f"❌ Error: Cannot open repo at '{repo_path}': {e}"
+        msg = f"❌ Error: Cannot open repo at '{clone_path}': {e}"
         logger.error(msg)
         return {"messages": [HumanMessage(content=msg)]}
 
@@ -155,7 +125,7 @@ def create_branch(state: DevAgentState) -> DevAgentState:
 
 # --- Node: Create Branch ---
 def commit_code(state: DevAgentState) -> DevAgentState:
-    repo_path = get_state_value(state, "repo_path")
+    clone_path = get_state_value(state, "clone_path")
     branch = get_state_value(state, "new_branch")
     repo_url = get_state_value(state, "repo_url")
     current_recommendation = get_state_value(state, "current_recommendation")
@@ -166,9 +136,9 @@ def commit_code(state: DevAgentState) -> DevAgentState:
 
     # 2) Open the repo
     try:
-        repo = Repo(repo_path)
+        repo = Repo(clone_path)
     except (NoSuchPathError, InvalidGitRepositoryError) as e:
-        msg = f"❌ Error: Cannot open repo at '{repo_path}': {e}"
+        msg = f"❌ Error: Cannot open repo at '{clone_path}': {e}"
         logger.error(msg)
         return {"messages": [HumanMessage(content=msg)]}
 
@@ -193,7 +163,7 @@ def commit_code(state: DevAgentState) -> DevAgentState:
 
 # --- Node: Push Code ---
 def push_code(state: DevAgentState) -> DevAgentState:
-    repo_path = get_state_value(state, "repo_path")
+    clone_path = get_state_value(state, "clone_path")
     branch = get_state_value(state, "new_branch")
     repo_url = get_state_value(state, "repo_url")
 
@@ -201,9 +171,9 @@ def push_code(state: DevAgentState) -> DevAgentState:
 
     # 2) Open the repo
     try:
-        repo = Repo(repo_path)
+        repo = Repo(clone_path)
     except (NoSuchPathError, InvalidGitRepositoryError) as e:
-        msg = f"❌ Error: Cannot open repo at '{repo_path}': {e}"
+        msg = f"❌ Error: Cannot open repo at '{clone_path}': {e}"
         logger.error(msg)
         return {"messages": [HumanMessage(content=msg)]}
 
@@ -228,17 +198,17 @@ def push_code(state: DevAgentState) -> DevAgentState:
 # --- Node: Push Code ---
 def pr_code(state: DevAgentState) -> DevAgentState:
     repo_url = get_state_value(state, "repo_url")
-    repo_path = get_state_value(state, "repo_path")
-    original_branch = get_state_value(state, "repo_branch")
+    clone_path = get_state_value(state, "clone_path")
+    original_branch = get_state_value(state, "base_branch")
     new_branch = get_state_value(state, "new_branch")
 
     git_url = create_github_https_url(repo_url)
 
     # 2) Open the repo
     try:
-        repo = Repo(repo_path)
+        repo = Repo(clone_path)
     except (NoSuchPathError, InvalidGitRepositoryError) as e:
-        msg = f"❌ Error: Cannot open repo at '{repo_path}': {e}"
+        msg = f"❌ Error: Cannot open repo at '{clone_path}': {e}"
         logger.error(msg)
         return {"messages": [HumanMessage(content=msg)]}
 
@@ -263,7 +233,7 @@ def pr_code(state: DevAgentState) -> DevAgentState:
 # --- Node: Clone Repo ---
 def pr_repo(state: DevAgentState) -> dict:
     repo_url = get_state_value(state, "repo_url")
-    base_branch = get_state_value(state, "repo_branch")
+    base_branch = get_state_value(state, "base_branch")
     head_branch = get_state_value(state, "new_branch")
 
     title = f"Critiquely improvements"
@@ -326,7 +296,7 @@ def inspect_files(llm, state: DevAgentState) -> dict:
 
     entry = state["modified_files"].pop(0)
     fname = entry.get("filename")
-    fpath = Path(state.get("repo_path", "")) / fname
+    fpath = Path(state.get("clone_path", "")) / fname
 
     try:
         file_text = fpath.read_text(encoding="utf-8")
@@ -340,9 +310,9 @@ def inspect_files(llm, state: DevAgentState) -> dict:
 
     state.update(
         {
-            "current_file": fname,
-            "current_file_content": file_text,
-            "current_file_lines_changed": lines_changed,
+            "active_file_name": fname,
+            "active_file_content": file_text,
+            "active_file_lines_changed": lines_changed,
         }
     )
 

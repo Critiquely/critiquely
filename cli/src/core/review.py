@@ -10,22 +10,19 @@ from langchain_anthropic import ChatAnthropic
 from src.tools.mcp import get_mcp_client
 
 
-async def run_review_graph(repo_url: str, repo_branch: str, modified_files: str):
-    print(repo_branch)
+async def run_review_graph(repo_url: str, base_branch: str, modified_files: str):
     # Build the graph
     graph = await build_graph()
 
     # Define the input state
     input_state = {
         "repo_url": repo_url,
-        "repo_branch": repo_branch,
+        "base_branch": base_branch,
         "modified_files": json.loads(modified_files),
         "messages": [],
     }
 
     config = {"configurable": {"thread_id": str(uuid4())}}  # or any unique session ID
-
-    print("CONFIG", config)
 
     # Stream the output
     async for event in graph.astream(input_state, config):

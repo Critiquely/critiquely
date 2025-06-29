@@ -13,40 +13,26 @@ from src.core.nodes import (
     create_branch,
     inspect_files,
     push_code,
-    route_tools,
     pr_repo,
 )
 from src.core.state import DevAgentState
 from src.tools.mcp import get_mcp_client
 
-# ───────────────────────── Routing helpers ──────────────────────────
-
-
-def route_more(state: DevAgentState) -> str:
-    """Keep inspecting until the modified-file list is empty."""
-    return "inspect_files" if state.get("modified_files") else END
-
-
-def route_after_tool_call(state: DevAgentState) -> str:
-    """
-    If the previous tool interaction produced edits, go commit them;
-    otherwise continue to push.
-    """
-
-    return "commit_code" if state.get("tool_outputs") else "push_code"
+from src.utils.routers import has_more_files_to_inspect, has_tool_invocation
+from src.utils.mermaid import save_mermaid_png
 
 
 async def build_graph(
     *,
     llm_model: str = "claude-3-5-sonnet-latest",
     checkpointer: Optional[object] = None,
-):
+) -> StateGraph:
     async with get_mcp_client() as client:
         tools = await client.get_tools()
         llm = ChatAnthropic(model=llm_model)
         llm_with_tools = llm.bind_tools(tools)
 
-        memory = MemorySaver()
+        memory = checkpointer or MemorySaver()
 
         graph_builder = StateGraph(DevAgentState)
         tool_node = ToolNode(tools)
@@ -70,18 +56,18 @@ async def build_graph(
         graph_builder.add_edge("create_branch", "inspect_files")
         graph_builder.add_conditional_edges(
             "inspect_files",
-            route_more,
+            has_more_files_to_inspect,
             {
-                "inspect_files": "inspect_files",  # back into the node
-                END: "apply_recommendations",  # finish when empty
+                "inspect_files": "inspect_files",
+                END: "apply_recommendations",
             },
         )
         graph_builder.add_conditional_edges(
             "apply_recommendations",
-            route_tools,
+            has_tool_invocation,
             {
-                "tools": "tool_call",  # back into the node
-                END: "push_code",  # finish when empty
+                "tools": "tool_call",
+                END: "push_code",
             },
         )
         graph_builder.add_edge("tool_call", "commit_code")
@@ -91,12 +77,7 @@ async def build_graph(
         # ── Compile ──
         graph = graph_builder.compile(checkpointer=memory)
 
-        try:
-            png_bytes = graph.get_graph().draw_mermaid_png()
-            with open("graph_mermaid.png", "wb") as f:
-                f.write(png_bytes)
-            print("Saved Mermaid-rendered graph to graph_mermaid.png")
-        except Exception as e:
-            print(f"Mermaid PNG render failed: {e}")
+        # ── Visualise the graph ──
+        save_mermaid_png(graph)
 
         return graph
