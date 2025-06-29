@@ -1,4 +1,4 @@
-"""CLI tool for code review using MCP server."""
+"""CLI tool for automated code review using MCP server. Provides functionality to analyze git repositories and generate review feedback using the MCP review pipeline."""
 
 import asyncio
 import click
