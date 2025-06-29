@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
     required=True,
     help="A json object consisting of the modified files",
 )
-async def run(repo_url: str, branch: str, modified_files: str):
+async def run(repo_url: str, branch: str, modified_files: str) -> None:
     if not (token := os.environ.get("GITHUB_TOKEN", "").strip()):
         logger.error("❌ GITHUB_TOKEN is unset or empty")
         sys.exit(1)
