@@ -52,6 +52,7 @@ def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> 
             click.echo("\n" + "=" * 50 + "\n")
         except Exception as e:
             logger.error(f"❌ Code review failed: {e}", exc_info=True)
+            sys.exit(1)
 
     asyncio.run(run())
 
