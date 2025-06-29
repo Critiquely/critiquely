@@ -142,7 +142,10 @@ def create_branch(state: DevAgentState) -> DevAgentState:
 
         msg = f"✅ New branch created: {branch_name}"
         logger.info(msg)
-        return {"new_branch": branch_name, "messages": [HumanMessage(content=msg)]}
+        return {
+            "new_branch": branch_name,
+            "messages": [HumanMessage(content=msg)],
+        }
 
     except GitCommandError as exc:
         error = f"❌ Failed to create {branch_name}: {exc}"
@@ -256,6 +259,7 @@ def pr_code(state: DevAgentState) -> DevAgentState:
         logger.error(error)
         return {"messages": [HumanMessage(content=error)]}
 
+
 # --- Node: Clone Repo ---
 def pr_repo(state: DevAgentState) -> dict:
     repo_url = get_state_value(state, "repo_url")
@@ -263,7 +267,7 @@ def pr_repo(state: DevAgentState) -> dict:
     head_branch = get_state_value(state, "new_branch")
 
     title = f"Critiquely improvements"
-    body  = "Automated code review fixes and improvements."
+    body = "Automated code review fixes and improvements."
 
     # Retrieve GitHub Token
     token = os.getenv("GITHUB_TOKEN", "").strip()
@@ -277,7 +281,7 @@ def pr_repo(state: DevAgentState) -> dict:
 
     # Access the GitHub Repo
     try:
-        gh   = Github(auth=Auth.Token(token))
+        gh = Github(auth=Auth.Token(token))
         repo = gh.get_repo(repo_name)
     except GithubException as exc:
         msg = f"❌ Failed to access repo '{repo_name}': {exc.data.get('message', exc)}"
@@ -290,14 +294,14 @@ def pr_repo(state: DevAgentState) -> dict:
             head=head_branch,
             title=title,
             body=body,
-            draft=False
+            draft=False,
         )
         msg = f"✅ Opened PR #{pr.number}: {pr.html_url}"
         logger.info(msg)
         return {
             "pr_number": pr.number,
             "pr_url": pr.html_url,
-            "messages": [HumanMessage(content=msg)]
+            "messages": [HumanMessage(content=msg)],
         }
 
     except GithubException as exc:
@@ -307,6 +311,7 @@ def pr_repo(state: DevAgentState) -> dict:
         )
         logger.error(msg)
         return {"messages": [HumanMessage(content=msg)]}
+
 
 ###############################################################################
 #                                L L M   N O D E S                            #
@@ -416,4 +421,3 @@ def apply_recommendations_with_mcp(
         f"✅ Applied recommendations to {file_path.name}; {len(recs_list)} remaining"
     )
     return state
-

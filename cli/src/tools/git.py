@@ -1,10 +1,12 @@
 """CLI tool for code review using MCP server."""
+
 from pathlib import Path
 from contextlib import asynccontextmanager
 
 from git import Repo, GitCommandError, InvalidGitRepositoryError
 
 from langchain_core.tools import tool, ToolException
+
 
 @tool
 def local_git_push(repo_path: str, branch: str) -> str:
@@ -33,7 +35,7 @@ def local_git_push(repo_path: str, branch: str) -> str:
         for res in push_result:
             if res.flags & res.ERROR:
                 raise ToolException(f"Git push failed: {res.summary}")
-        
+
         return f"Push successful: {res.summary}"
 
     except GitCommandError as e:

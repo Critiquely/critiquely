@@ -14,7 +14,7 @@ from src.core.nodes import (
     inspect_files,
     push_code,
     route_tools,
-    pr_repo
+    pr_repo,
 )
 from src.core.state import DevAgentState
 from src.tools.mcp import get_mcp_client
@@ -100,4 +100,3 @@ async def build_graph(
             print(f"Mermaid PNG render failed: {e}")
 
         return graph
-

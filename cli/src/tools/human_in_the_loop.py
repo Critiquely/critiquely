@@ -13,11 +13,11 @@ def add_human_in_the_loop(
     interrupt_config: Optional[HumanInterruptConfig] = None,
 ) -> BaseTool:
     """Wrap a tool to support human-in-the-loop review.
-    
+
     Args:
         tool: The tool or function to wrap
         interrupt_config: Configuration for the human interrupt
-        
+
     Returns:
         A wrapped tool that supports human-in-the-loop review
     """
@@ -35,18 +35,20 @@ def add_human_in_the_loop(
         name: str = tool.name
         description: str = tool.description
         args_schema: type = tool.args_schema
-        
+
         def _run(self, *args, **kwargs):
-            raise NotImplementedError("Sync invocation not supported. Use ainvoke() instead.")
-            
+            raise NotImplementedError(
+                "Sync invocation not supported. Use ainvoke() instead."
+            )
+
         async def _arun(self, *args, **kwargs) -> Any:
             config = {}
-            if args and isinstance(args[0], dict) and 'configurable' in args[0]:
+            if args and isinstance(args[0], dict) and "configurable" in args[0]:
                 config = args[0]
                 args = args[1:]
-            
+
             tool_input = {**dict(zip(tool.args.keys(), args)), **kwargs}
-            
+
             request: HumanInterrupt = {
                 "action_request": {
                     "action": tool.name,
@@ -55,24 +57,26 @@ def add_human_in_the_loop(
                 "config": interrupt_config,
                 "description": f"Please review the {tool.name} tool call",
             }
-            
+
             response = interrupt([request])[0]
-            
+
             if response["type"] == "accept":
-                if hasattr(tool, 'ainvoke'):
+                if hasattr(tool, "ainvoke"):
                     return await tool.ainvoke(tool_input, config)
                 return await tool._arun(**tool_input)
-                
+
             elif response["type"] == "edit":
                 tool_input = response["args"]["args"]
-                if hasattr(tool, 'ainvoke'):
+                if hasattr(tool, "ainvoke"):
                     return await tool.ainvoke(tool_input, config)
                 return await tool._arun(**tool_input)
-                
+
             elif response["type"] == "response":
                 return response["args"]
-                
+
             else:
-                raise ValueError(f"Unsupported interrupt response type: {response['type']}")
-    
+                raise ValueError(
+                    f"Unsupported interrupt response type: {response['type']}"
+                )
+
     return AsyncToolWrapper()

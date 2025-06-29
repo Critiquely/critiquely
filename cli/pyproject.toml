@@ -28,3 +28,14 @@ critiquely = "src.main:cli"
 [build-system]
 requires = ["flit_core<4"]
 build-backend = "flit_core.buildapi"
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "pylint>=3.3.7",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py37']
+include = '\.pyi?$'

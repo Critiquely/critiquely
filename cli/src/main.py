@@ -11,27 +11,26 @@ from src.core.review import run_review_graph
 logging.basicConfig(
     format="%(asctime)s %(levelname)7s %(message)s",
     datefmt="%H:%M:%S",
-    level=logging.INFO
+    level=logging.INFO,
 )
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 
+
 @click.command()
 @click.option(
-    "--repo_url",
-    required=True,
-    help="The repository URL you want to critique"
+    "--repo_url", required=True, help="The repository URL you want to critique"
 )
 @click.option(
     "--branch",
     required=True,
-    help="The branch within the repository you want to critique"
+    help="The branch within the repository you want to critique",
 )
 @click.option(
     "--modified_files",
     required=True,
-    help="A json object consisting of the modified files"
+    help="A json object consisting of the modified files",
 )
 @click.pass_context
 def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> None:

@@ -6,10 +6,8 @@ import json
 import logging
 
 
-
 from langchain_anthropic import ChatAnthropic
 from src.tools.mcp import get_mcp_client
-
 
 
 async def run_review_graph(repo_url: str, repo_branch: str, modified_files: str):
@@ -22,22 +20,15 @@ async def run_review_graph(repo_url: str, repo_branch: str, modified_files: str)
         "repo_url": repo_url,
         "repo_branch": repo_branch,
         "modified_files": json.loads(modified_files),
-        "messages": []
+        "messages": [],
     }
 
-    config = {
-        "configurable": {
-            "thread_id": str(uuid4())  # or any unique session ID
-        }
-    }
+    config = {"configurable": {"thread_id": str(uuid4())}}  # or any unique session ID
 
-    print("CONFIG",config)
+    print("CONFIG", config)
 
     # Stream the output
     async for event in graph.astream(input_state, config):
         for value in event.values():
             content = value["messages"][-1].content
             logging.info(f"🤖 Assistant: {content}")
-
-
-    
