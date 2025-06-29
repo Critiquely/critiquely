@@ -16,3 +16,5 @@ class DevAgentState(TypedDict):
     current_recommendation: Optional[dict]
     last_file_reviewed: str
     recommendations: list[dict]
+    pr_number: Optional[str]
+    pr_url: Optional[str]

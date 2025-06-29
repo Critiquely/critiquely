@@ -15,6 +15,7 @@ from src.core.nodes import (
     inspect_files,
     push_code,
     route_tools,
+    pr_repo
 )
 from src.core.state import DevAgentState
 from src.tools.mcp import get_mcp_client
@@ -62,6 +63,7 @@ async def build_graph(
         )
         graph_builder.add_node("push_code", push_code)
         graph_builder.add_node("commit_code", commit_code)
+        graph_builder.add_node("pr_repo", pr_repo)
 
         # ── Edges ──
         graph_builder.set_entry_point("clone_repo")
@@ -85,6 +87,7 @@ async def build_graph(
         )
         graph_builder.add_edge("tool_call", "commit_code")
         graph_builder.add_edge("commit_code", "apply_recommendations")
+        graph_builder.add_edge("push_code", "pr_repo")
 
         # ── Compile ──
         graph = graph_builder.compile(checkpointer=memory)

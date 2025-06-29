@@ -5,7 +5,10 @@ import os
 import logging
 from urllib.parse import urlparse, urlunparse, quote
 from pathlib import Path
+
 from git import Repo, GitCommandError
+from github import Github
+from github import Auth
 
 from langgraph.graph import END
 from langchain_core.messages import HumanMessage
@@ -245,6 +248,58 @@ def pr_code(state: DevAgentState) -> DevAgentState:
         error = f"❌ Failed to push to '{branch}': {exc}"
         logger.error(error)
         return {"messages": [HumanMessage(content=error)]}
+
+# --- Node: Clone Repo ---
+def pr_repo(state: DevAgentState) -> dict:
+    repo_url = get_state_value(state, "repo_url")
+    base_branch = get_state_value(state, "repo_branch")
+    head_branch = get_state_value(state, "new_branch")
+
+    title = f"Critiquely improvements"
+    body  = "Automated code review fixes and improvements."
+
+    # Retrieve GitHub Token
+    token = os.getenv("GITHUB_TOKEN", "").strip()
+    if not token:
+        msg = "❌ GITHUB_TOKEN is unset or empty."
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    # Retrieve repo name from URL
+    repo_name = urlparse(repo_url).path.lstrip("/").removesuffix(".git")
+
+    # Access the GitHub Repo
+    try:
+        gh   = Github(auth=Auth.Token(token))
+        repo = gh.get_repo(repo_name)
+    except GithubException as exc:
+        msg = f"❌ Failed to access repo '{repo_name}': {exc.data.get('message', exc)}"
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    try:
+        pr = repo.create_pull(
+            base=base_branch,
+            head=head_branch,
+            title=title,
+            body=body,
+            draft=False
+        )
+        msg = f"✅ Opened PR #{pr.number}: {pr.html_url}"
+        logger.info(msg)
+        return {
+            "pr_number": pr.number,
+            "pr_url": pr.html_url,
+            "messages": [HumanMessage(content=msg)]
+        }
+
+    except GithubException as exc:
+        msg = (
+            f"❌ Failed to open PR {head_branch} → {base_branch}: "
+            f"{exc.data.get('message', exc)}"
+        )
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
 
 ###############################################################################
 #                                L L M   N O D E S                            #
