@@ -1,4 +1,7 @@
-"""CLI tool for code review using MCP server."""
+"""CLI tool for performing automated code reviews using the MCP (Managed Code Review Platform) server.
+
+Example:
+    GITHUB_TOKEN=<token> python main.py --repo_url=<url> --branch=main --modified_files='{"src/main.py":"modified"}'"""
 
 import asyncio
 import click
