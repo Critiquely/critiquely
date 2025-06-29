@@ -1,4 +1,19 @@
-"""CLI tool for code review using MCP server."""
+"""CLI tool for code review using MCP server.
+
+This tool integrates with the Model Code Processor (MCP) server to perform
+automated code reviews on Git repositories. It analyzes modified files in a
+given branch and generates detailed review feedback using AI-powered analysis.
+
+The tool requires a GitHub token for authentication and expects inputs specifying
+the target repository URL, branch name, and a JSON object containing the list of
+modified files to review.
+
+Typical usage:
+    export GITHUB_TOKEN=<your_github_token>
+    python -m cli.src.main --repo_url=https://github.com/user/repo \
+                          --branch=feature-branch \
+                          --modified_files='{"file1.py": "content1", ...}'
+"""
 
 import asyncio
 import click
