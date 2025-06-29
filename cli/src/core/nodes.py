@@ -357,7 +357,7 @@ def apply_recommendations_with_mcp(
     current = recs_list.pop(0)
     state.update({"current_recommendation": current})
     file_path = Path(current.get("file", ""))
-    recs = current.get("recommendation", [])
+    recs = current.get("recommendation")
 
     if not recs:
         logger.warning(f"❌ No recommendations for {file_path}")
