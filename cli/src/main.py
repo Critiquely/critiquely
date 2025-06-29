@@ -39,8 +39,8 @@ def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> 
 
     async def run():
         if not (token := os.environ.get("GITHUB_TOKEN", "").strip()):
-            logger.error("❌ GITHUB_TOKEN is unset or empty")
-            sys.exit(1)
+            logger.error("❌ GitHub access token not found. Please set the GITHUB_TOKEN environment variable with a valid GitHub personal access token.")
+            click.exit(1)
 
         try:
             result = await run_review_graph(
