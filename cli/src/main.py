@@ -54,8 +54,18 @@ def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> 
             )
             click.echo(result)
             click.echo("\n" + "=" * 50 + "\n")
+        except ConnectionError as e:
+            logger.error(f"❌ Network error during code review: {e}")
+            sys.exit(1)
+        except ValueError as e:
+            logger.error(f"❌ Invalid input parameters: {e}")
+            sys.exit(1)
+        except PermissionError as e:
+            logger.error(f"❌ Authentication or permission error: {e}")
+            sys.exit(1)
         except Exception as e:
-            logger.error(f"❌ Code review failed: {e}", exc_info=True)
+            logger.error(f"❌ Unexpected error during code review: {e}", exc_info=True)
+            sys.exit(1)
 
     asyncio.run(run())
 
