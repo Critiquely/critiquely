@@ -6,7 +6,7 @@ import logging
 from urllib.parse import urlparse, urlunparse, quote
 from pathlib import Path
 
-from git import Repo, GitCommandError
+from git import Repo, GitCommandError, NoSuchPathError, InvalidGitRepositoryError
 from github import Github
 from github import Auth
 
