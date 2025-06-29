@@ -36,11 +36,14 @@ logger = logging.getLogger(__name__)
 def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> None:
     """Run the code review CLI."""
 
-    async def run():
+    def validate_github_token() -> str:
         if not (token := os.environ.get("GITHUB_TOKEN", "").strip()):
             logger.error("❌ GITHUB_TOKEN is unset or empty")
             sys.exit(1)
+        return token
 
+    async def run():
+        token = validate_github_token()
         try:
             result = await run_review_graph(
                 repo_url=repo_url,
