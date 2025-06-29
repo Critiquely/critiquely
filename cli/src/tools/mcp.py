@@ -2,6 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from typing import AsyncGenerator
+from src.utils.fs_utils import get_temp_dir
 
 
 class CodeReviewError(Exception):
@@ -41,7 +42,11 @@ async def get_mcp_client() -> AsyncGenerator[MultiServerMCPClient, None]:
             "filesystem": {
                 "transport": "stdio",
                 "command": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+                "args": [
+                    "-y",
+                    "@modelcontextprotocol/server-filesystem",
+                    get_temp_dir(),
+                ],
             },
         }
     )
@@ -51,4 +56,3 @@ async def get_mcp_client() -> AsyncGenerator[MultiServerMCPClient, None]:
     finally:
         if hasattr(client, "close"):
             await client.close()
-
