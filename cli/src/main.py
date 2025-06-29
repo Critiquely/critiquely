@@ -1,4 +1,4 @@
-"""CLI tool for code review using MCP server.
+'''CLI tool for code review using MCP server.
 
 A command line interface for automated code review that integrates with GitHub repositories.
 This tool analyzes modified files in a given branch and provides detailed feedback using
@@ -16,7 +16,7 @@ Usage example:
     $ python -m cli.src.main --repo_url="https://github.com/user/repo" \
                             --branch="feature-branch" \
                             --modified_files='["src/file1.py", "src/file2.py"]'
-"""
+'''
 
 import asyncio
 import click
