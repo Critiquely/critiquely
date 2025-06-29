@@ -41,7 +41,7 @@ def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> 
         logger.error("❌ GITHUB_TOKEN is unset or empty")
         sys.exit(1)
 
-    async def run():
+    async def run() -> None:
         try:
             result = await run_review_graph(
                 repo_url=repo_url,
