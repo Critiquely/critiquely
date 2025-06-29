@@ -54,7 +54,7 @@ def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> 
             logger.info("Gracefully shutting down...")
             sys.exit(0)
         except Exception as e:
-            logger.error(f"❌ Code review failed: {e}", exc_info=True)
+            logger.error(f"❌ Code review operation failed: {e}", exc_info=True)
 
     asyncio.run(run())
 
