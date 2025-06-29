@@ -2,18 +2,20 @@ import os
 from contextlib import asynccontextmanager
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from typing import AsyncGenerator
+from src.utils.fs_utils import get_temp_dir
 
 
 class CodeReviewError(Exception):
     """Raised when there is a critical failure during MCP client setup."""
 
+
 @asynccontextmanager
 async def get_mcp_client() -> AsyncGenerator[MultiServerMCPClient, None]:
     """Context manager for MCP client lifecycle management.
-    
+
     Yields:
         MultiServerMCPClient: Configured MCP client
-        
+
     Raises:
         CodeReviewError: If required environment variables are missing
     """
@@ -28,31 +30,29 @@ async def get_mcp_client() -> AsyncGenerator[MultiServerMCPClient, None]:
                     "--rm",
                     "-e",
                     "GITHUB_PERSONAL_ACCESS_TOKEN",
-                    "ghcr.io/github/github-mcp-server"
+                    "ghcr.io/github/github-mcp-server",
                 ],
-                "env": {
-                    "GITHUB_PERSONAL_ACCESS_TOKEN": os.environ.get("GITHUB_TOKEN")
-                }
+                "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": os.environ.get("GITHUB_TOKEN")},
             },
             "mcp-server-git": {
                 "transport": "stdio",
                 "command": "uvx",
-                "args": ["mcp-server-git"]
+                "args": ["mcp-server-git"],
             },
             "filesystem": {
                 "transport": "stdio",
                 "command": "npx",
                 "args": [
-                "-y",
-                "@modelcontextprotocol/server-filesystem",
-                "/tmp"
-                ]
-            }
+                    "-y",
+                    "@modelcontextprotocol/server-filesystem",
+                    get_temp_dir(),
+                ],
+            },
         }
     )
-    
+
     try:
         yield client
     finally:
-        if hasattr(client, 'close'):
+        if hasattr(client, "close"):
             await client.close()
