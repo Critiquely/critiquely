@@ -18,6 +18,22 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
+async def run(repo_url: str, branch: str, modified_files: str):
+    if not (token := os.environ.get("GITHUB_TOKEN", "").strip()):
+        logger.error("❌ GITHUB_TOKEN is unset or empty")
+        sys.exit(1)
+
+    try:
+        result = await run_review_graph(
+            repo_url=repo_url,
+            base_branch=branch,
+            modified_files=modified_files,
+        )
+        click.echo(result)
+        click.echo("\n" + "=" * 50 + "\n")
+    except Exception as e:
+        logger.error(f"❌ Code review failed: {e}", exc_info=True)
+
 @click.command()
 @click.option(
     "--repo_url", required=True, help="The repository URL you want to critique"
@@ -35,24 +51,7 @@ logger = logging.getLogger(__name__)
 @click.pass_context
 def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> None:
     """Run the code review CLI."""
-
-    async def run():
-        if not (token := os.environ.get("GITHUB_TOKEN", "").strip()):
-            logger.error("❌ GITHUB_TOKEN is unset or empty")
-            sys.exit(1)
-
-        try:
-            result = await run_review_graph(
-                repo_url=repo_url,
-                base_branch=branch,
-                modified_files=modified_files,
-            )
-            click.echo(result)
-            click.echo("\n" + "=" * 50 + "\n")
-        except Exception as e:
-            logger.error(f"❌ Code review failed: {e}", exc_info=True)
-
-    asyncio.run(run())
+    asyncio.run(run(repo_url, branch, modified_files))
 
 
 if __name__ == "__main__":
