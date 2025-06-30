@@ -7,8 +7,9 @@ from urllib.parse import quote, urlparse, urlunparse
 from uuid import uuid4
 
 from git import Repo, InvalidGitRepositoryError, NoSuchPathError
+from github import Auth
 from git.exc import GitCommandError
-from github import Auth, Github
+from github import Github
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END
 
