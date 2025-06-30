@@ -9,7 +9,6 @@ import logging
 from langchain_anthropic import ChatAnthropic
 from src.tools.mcp import get_mcp_client
 
-
 async def run_review_graph(repo_url: str, base_branch: str, modified_files: str):
     # Build the graph
     graph = await build_graph()
@@ -22,7 +21,7 @@ async def run_review_graph(repo_url: str, base_branch: str, modified_files: str)
         "messages": [],
     }
 
-    config = {"configurable": {"thread_id": str(uuid4())}}  # or any unique session ID
+    config = {"configurable": {"thread_id": str(uuid4())}}
 
     # Stream the output
     async for event in graph.astream(input_state, config):

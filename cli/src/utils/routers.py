@@ -3,9 +3,7 @@ import logging
 from langgraph.graph import END, StateGraph
 from src.core.state import DevAgentState
 
-# Use the root logger configuration from CLI
 logger = logging.getLogger(__name__)
-
 
 def has_more_files_to_inspect(state: DevAgentState) -> str:
     """Keep inspecting until the modified-file list is empty."""

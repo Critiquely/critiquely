@@ -14,33 +14,10 @@ from langgraph.graph import END
 from src.core.state import DevAgentState
 from src.utils.fs import get_temp_dir
 from src.utils.git import create_github_https_url
+from src.utils.state import get_state_value
 
 # Use the root logger configuration from CLI
 logger = logging.getLogger(__name__)
-
-def get_state_value(state: DevAgentState, key: str) -> str:
-    """Raise a ValueError if state[key] is missing/empty after strip()."""
-    if key not in state:
-        msg = f"❌ '{key}' missing from state."
-        logger.error(msg)
-        raise KeyError(msg)
-
-    val = state[key]
-
-    if val is None:
-        msg = f"❌ '{key}' is None."
-        logger.error(msg)
-        raise ValueError(msg)
-
-    if isinstance(val, str):
-        val = val.strip()
-        if val == "":
-            msg = f"❌ '{key}' is blank."
-            logger.error(msg)
-            raise ValueError(msg)
-
-    return val
-
 
 ###############################################################################
 #                                G I T   N O D E S                            #
