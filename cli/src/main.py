@@ -32,27 +32,26 @@ logger = logging.getLogger(__name__)
     required=True,
     help="A json object consisting of the modified files",
 )
+async def run_review(repo_url: str, branch: str, modified_files: str) -> None:
+    if not (token := os.environ.get("GITHUB_TOKEN", "").strip()):
+        logger.error("❌ GITHUB_TOKEN is unset or empty")
+        sys.exit(1)
+
+    try:
+        result = await run_review_graph(
+            repo_url=repo_url,
+            base_branch=branch,
+            modified_files=modified_files,
+        )
+        click.echo(result)
+        click.echo("\n" + "=" * 50 + "\n")
+    except Exception as e:
+        logger.error(f"❌ Code review failed: {e}", exc_info=True)
+
 @click.pass_context
 def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> None:
     """Run the code review CLI."""
-
-    async def run():
-        if not (token := os.environ.get("GITHUB_TOKEN", "").strip()):
-            logger.error("❌ GITHUB_TOKEN is unset or empty")
-            sys.exit(1)
-
-        try:
-            result = await run_review_graph(
-                repo_url=repo_url,
-                base_branch=branch,
-                modified_files=modified_files,
-            )
-            click.echo(result)
-            click.echo("\n" + "=" * 50 + "\n")
-        except Exception as e:
-            logger.error(f"❌ Code review failed: {e}", exc_info=True)
-
-    asyncio.run(run())
+    asyncio.run(run_review(repo_url, branch, modified_files))
 
 
 if __name__ == "__main__":
