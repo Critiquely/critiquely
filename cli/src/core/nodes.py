@@ -6,9 +6,9 @@ from pathlib import Path
 from urllib.parse import quote, urlparse, urlunparse
 from uuid import uuid4
 
-from git import Repo, InvalidGitRepositoryError, NoSuchPathError
+from git import Repo
+from git.exc import GitCommandError, InvalidGitRepositoryError, NoSuchPathError
 from github import Auth
-from git.exc import GitCommandError
 from github import Github
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END
