@@ -141,9 +141,9 @@ def push_code(state: DevAgentState) -> DevAgentState:
 
     # 4) Push
     try:
-        logger.info(f"🔄 Pushing branch '{branch}' to origin")
-        origin.push(refspec=f"{branch}:{branch}")
-        msg = f"✅ Pushed branch '{branch}' to origin"
+        logger.info(f"🔄 Pushing branch '{new_branch}' to origin")
+        origin.push(refspec=f"{new_branch}:{new_branch}")
+        msg = f"✅ Pushed branch '{new_branch}' to origin"
         logger.info(msg)
         return {"new_branch": branch, "messages": [HumanMessage(content=msg)]}
 
