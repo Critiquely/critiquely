@@ -153,40 +153,6 @@ def push_code(state: DevAgentState) -> DevAgentState:
         return {"messages": [HumanMessage(content=error)]}
 
 
-# --- Node: Push Code ---
-def pr_code(state: DevAgentState) -> DevAgentState:
-    repo_url = get_state_value(state, "repo_url")
-    clone_path = get_state_value(state, "clone_path")
-    original_branch = get_state_value(state, "base_branch")
-    new_branch = get_state_value(state, "new_branch")
-
-    git_url = create_github_https_url(repo_url)
-
-    # 2) Open the repo
-    try:
-        repo = Repo(clone_path)
-    except (NoSuchPathError, InvalidGitRepositoryError) as e:
-        msg = f"❌ Error: Cannot open repo at '{clone_path}': {e}"
-        logger.error(msg)
-        return {"messages": [HumanMessage(content=msg)]}
-
-    # 3) Inject token into the origin URL
-    origin = repo.remote(name="origin")
-    origin.set_url(git_url)
-
-    # 4) Push
-    try:
-        logger.info(f"🔄 Pushing branch '{branch}' to origin")
-        origin.push(refspec=f"{branch}:{branch}")
-        msg = f"✅ Pushed branch '{branch}' to origin"
-        logger.info(msg)
-        return {"new_branch": branch, "messages": [HumanMessage(content=msg)]}
-
-    except GitCommandError as exc:
-        error = f"❌ Failed to push to '{branch}': {exc}"
-        logger.error(error)
-        return {"messages": [HumanMessage(content=error)]}
-
 
 # --- Node: Clone Repo ---
 def pr_repo(state: DevAgentState) -> dict:
