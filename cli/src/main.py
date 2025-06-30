@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> None:
     """Run the code review CLI."""
 
-    async def run():
+    async def run() -> None:
         if not (token := os.environ.get("GITHUB_TOKEN", "").strip()):
             logger.error("❌ GITHUB_TOKEN is unset or empty")
             click.exit(1)
