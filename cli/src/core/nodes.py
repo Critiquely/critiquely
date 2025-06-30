@@ -284,6 +284,7 @@ def inspect_files(llm, state: DevAgentState) -> dict:
             "Output format:\n"
             "[{'file':'<filename>','summary':'<github commit style summary using conventional commit syntax>','recommendation':'<recommendation>'},{'file':'<filename>','summary':'<github commit style summary>','recommendation':'<recommendation>'}]\n\n"
             "You can have multiple objects for a specific file if there are multple recommendations\n\n"
+            "**DO NOT** include anything other than the JSON list"
             f"File contents:\n{file_text}"
         )
     )
