@@ -1,5 +1,4 @@
 import os
-import logging
 from urllib.parse import urlparse, urlunparse, quote
 
 

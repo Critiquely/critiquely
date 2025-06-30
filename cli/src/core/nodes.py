@@ -3,11 +3,12 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from urllib.parse import quote, urlparse, urlunparse
+from urllib.parse import urlparse
 from uuid import uuid4
 
 from git import Repo, GitCommandError, InvalidGitRepositoryError, NoSuchPathError
 from github import Auth, Github
+from github.GithubException import GithubException
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END
 
@@ -237,6 +238,66 @@ def pr_repo(state: DevAgentState) -> dict:
             f"❌ Failed to open PR {head_branch} → {base_branch}: "
             f"{exc.data.get('message', exc)}"
         )
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+
+def comment_on_original_pr(state: DevAgentState) -> dict:
+    """
+    comment_on_original_pr(state: DevAgentState) -> dict
+    This node creates a comment on the GitHub pull request that initiated the review process.
+    """
+    original_pr_url = state.get("original_pr_url")
+
+    # Retrieve GitHub Token
+    token = os.getenv("GITHUB_TOKEN", "").strip()
+    if not token:
+        msg = "❌ GITHUB_TOKEN is unset or empty."
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    # Parse original PR URL to extract repo and PR number
+    try:
+        # Expected format: https://github.com/owner/repo/pull/123
+        url_parts = original_pr_url.rstrip("/").split("/")
+        if len(url_parts) < 7 or url_parts[-2] != "pull":
+            raise ValueError("Invalid PR URL format")
+
+        repo_name = f"{url_parts[-4]}/{url_parts[-3]}"
+        pr_number = int(url_parts[-1])
+    except (ValueError, IndexError) as e:
+        msg = f"❌ Failed to parse PR URL '{original_pr_url}': {e}"
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    try:
+        gh = Github(auth=Auth.Token(token))
+        repo = gh.get_repo(repo_name)
+        pr = repo.get_pull(pr_number)
+    except Exception as exc:
+        msg = f"❌ Failed to access PR #{pr_number} in '{repo_name}': {exc}"
+        logger.error(msg)
+        return {"messages": [HumanMessage(content=msg)]}
+
+    # TODO: Add a summary of the changes made by the Critiquely review
+    comment_body = (
+        f"🤖 **Critiquely Review Complete**\n\n"
+        f"**Review PR:** {state.get("pr_url")}\n\n"
+        f"The improvements include automated code review fixes and enhancements. "
+        f"Please review the changes and merge if they look good!"
+    )
+
+    try:
+        pr.create_issue_comment(comment_body)
+        msg = f"✅ Commented on original PR {original_pr_url}"
+        logger.info(msg)
+        return {
+            "original_pr_url": original_pr_url,
+            "messages": [HumanMessage(content=msg)],
+        }
+
+    except Exception as exc:
+        msg = f"❌ Failed to comment on PR {original_pr_url}: {exc}"
         logger.error(msg)
         return {"messages": [HumanMessage(content=msg)]}
 

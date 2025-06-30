@@ -6,16 +6,16 @@ import json
 import logging
 
 
-from langchain_anthropic import ChatAnthropic
-from src.tools.mcp import get_mcp_client
-
-async def run_review_graph(repo_url: str, base_branch: str, modified_files: str):
+async def run_review_graph(
+    repo_url: str, original_pr_url: str, base_branch: str, modified_files: str
+):
     # Build the graph
     graph = await build_graph()
 
     # Define the input state
     input_state = {
         "repo_url": repo_url,
+        "original_pr_url": original_pr_url,
         "base_branch": base_branch,
         "modified_files": json.loads(modified_files),
         "messages": [],

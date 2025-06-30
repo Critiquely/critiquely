@@ -25,6 +25,7 @@ class DevAgentState(TypedDict):
     recommendations: list[dict]
 
     # PR Details
+    original_pr_url: str
     pr_number: Optional[str]
     pr_url: Optional[str]
 

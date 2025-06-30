@@ -5,6 +5,7 @@ from src.core.state import DevAgentState
 
 logger = logging.getLogger(__name__)
 
+
 def has_more_files_to_inspect(state: DevAgentState) -> str:
     """Keep inspecting until the modified-file list is empty."""
     remaining = state.get("modified_files", [])

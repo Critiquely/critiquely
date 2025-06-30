@@ -9,6 +9,7 @@ from langgraph.prebuilt import ToolNode
 from src.core.nodes import (
     apply_recommendations_with_mcp,
     clone_repo,
+    comment_on_original_pr,
     commit_code,
     create_branch,
     inspect_files,
@@ -49,6 +50,7 @@ async def build_graph(
         graph_builder.add_node("push_code", push_code)
         graph_builder.add_node("commit_code", commit_code)
         graph_builder.add_node("pr_repo", pr_repo)
+        graph_builder.add_node("comment_on_original_pr", comment_on_original_pr)
 
         # ── Edges ──
         graph_builder.set_entry_point("clone_repo")
@@ -73,6 +75,7 @@ async def build_graph(
         graph_builder.add_edge("tool_call", "commit_code")
         graph_builder.add_edge("commit_code", "apply_recommendations")
         graph_builder.add_edge("push_code", "pr_repo")
+        graph_builder.add_edge("pr_repo", "comment_on_original_pr")
 
         # ── Compile ──
         graph = graph_builder.compile(checkpointer=memory)

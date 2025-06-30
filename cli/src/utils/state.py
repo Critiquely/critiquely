@@ -1,6 +1,5 @@
-import logging
-
 from src.core.state import DevAgentState
+
 
 def get_state_value(state: DevAgentState, key: str) -> str:
     """Raise a ValueError if state[key] is missing/empty after strip()."""
@@ -24,3 +23,4 @@ def get_state_value(state: DevAgentState, key: str) -> str:
             raise ValueError(msg)
 
     return val
+

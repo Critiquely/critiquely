@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
     "--repo_url", required=True, help="The repository URL you want to critique"
 )
 @click.option(
+    "--original_pr_url", required=True, help="The pull request URL you want to critique"
+)
+@click.option(
     "--branch",
     required=True,
     help="The branch within the repository you want to critique",
@@ -32,7 +35,13 @@ logger = logging.getLogger(__name__)
     help="A json object consisting of the modified files",
 )
 @click.pass_context
-def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> None:
+def cli(
+    ctx: click.Context,
+    repo_url: str,
+    original_pr_url: str,
+    branch: str,
+    modified_files: str,
+) -> None:
     """Run the code review CLI."""
 
     async def run():
@@ -43,6 +52,7 @@ def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> 
         try:
             result = await run_review_graph(
                 repo_url=repo_url,
+                original_pr_url=original_pr_url,
                 base_branch=branch,
                 modified_files=modified_files,
             )
