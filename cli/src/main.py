@@ -49,6 +49,7 @@ def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> 
             )
             click.echo(result)
             click.echo("\n" + "=" * 50 + "\n")
+            sys.exit(0)
         except Exception as e:
             logger.error(f"❌ Code review failed: {e}", exc_info=True)
 
