@@ -46,7 +46,7 @@ async def run_review(repo_url: str, branch: str, modified_files: str) -> None:
         click.echo(result)
         click.echo("\n" + "=" * 50 + "\n")
     except Exception as e:
-        logger.error(f"❌ Code review failed: {e}", exc_info=True)
+        logger.error(f"❌ Code review failed: {e!r} - {str(e)}", exc_info=True)
 
 @click.pass_context
 def cli(ctx: click.Context, repo_url: str, branch: str, modified_files: str) -> None:
