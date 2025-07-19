@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 import tempfile
 from pathlib import Path
 from urllib.parse import urlparse
@@ -12,6 +11,7 @@ from github.GithubException import GithubException
 from langchain_core.messages import HumanMessage
 from langgraph.graph import END
 
+from src.config import settings
 from src.core.state import DevAgentState
 from src.utils.fs import get_temp_dir
 from src.utils.git import create_github_https_url
@@ -199,8 +199,7 @@ def pr_repo(state: DevAgentState) -> dict:
     body = "Automated code review fixes and improvements."
 
     # Retrieve GitHub Token
-    token = os.getenv("GITHUB_TOKEN", "").strip()
-    if not token:
+    if not settings.github_token:
         msg = "❌ GITHUB_TOKEN is unset or empty."
         logger.error(msg)
         return {"messages": [HumanMessage(content=msg)]}
@@ -210,7 +209,7 @@ def pr_repo(state: DevAgentState) -> dict:
 
     # Access the GitHub Repo
     try:
-        gh = Github(auth=Auth.Token(token))
+        gh = Github(auth=Auth.Token(settings.github_token))
         repo = gh.get_repo(repo_name)
     except GithubException as exc:
         msg = f"❌ Failed to access repo '{repo_name}': {exc.data.get('message', exc)}"
@@ -250,8 +249,7 @@ def comment_on_original_pr(state: DevAgentState) -> dict:
     original_pr_url = state.get("original_pr_url")
 
     # Retrieve GitHub Token
-    token = os.getenv("GITHUB_TOKEN", "").strip()
-    if not token:
+    if not settings.github_token:
         msg = "❌ GITHUB_TOKEN is unset or empty."
         logger.error(msg)
         return {"messages": [HumanMessage(content=msg)]}
@@ -271,7 +269,7 @@ def comment_on_original_pr(state: DevAgentState) -> dict:
         return {"messages": [HumanMessage(content=msg)]}
 
     try:
-        gh = Github(auth=Auth.Token(token))
+        gh = Github(auth=Auth.Token(settings.github_token))
         repo = gh.get_repo(repo_name)
         pr = repo.get_pull(pr_number)
     except Exception as exc:

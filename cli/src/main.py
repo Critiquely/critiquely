@@ -3,8 +3,9 @@
 import asyncio
 import click
 import logging
-import os
+import sys
 
+from src.config import settings
 from src.core.review import run_review_graph
 
 logging.basicConfig(
@@ -45,7 +46,7 @@ def cli(
     """Run the code review CLI."""
 
     async def run():
-        if not (token := os.environ.get("GITHUB_TOKEN", "").strip()):
+        if not settings.github_token:
             logger.error("❌ GITHUB_TOKEN is unset or empty")
             sys.exit(1)
 

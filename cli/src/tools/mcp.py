@@ -1,7 +1,7 @@
-import os
 from contextlib import asynccontextmanager
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from typing import AsyncGenerator
+from src.config import settings
 from src.utils.fs import get_temp_dir
 
 
@@ -32,7 +32,7 @@ async def get_mcp_client() -> AsyncGenerator[MultiServerMCPClient, None]:
                     "GITHUB_PERSONAL_ACCESS_TOKEN",
                     "ghcr.io/github/github-mcp-server",
                 ],
-                "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": os.environ.get("GITHUB_TOKEN")},
+                "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": settings.github_token},
             },
             "mcp-server-git": {
                 "transport": "stdio",
