@@ -22,14 +22,12 @@ _Critiquely_ is an AI-powered code review application designed to review code ch
    ```bash
    export ANTHROPIC_API_KEY=XXXXXXX
    export GITHUB_TOKEN=XXXXXXX
-   export GITHUB_MCP_SERVER_URL=http://localhost:8080
    uv sync
-   source .venv/bin/activate
    ```
 
 3. Run the CLI:
    ```bash
-   critiquely --repo_url https://github.com/Critiquely/critiquely.git --original_pr_url https://github.com/Critiquely/critiquely/pull/31 --branch langgraph --modified_files '[{"filename":"app/src/main.py", "type":"modified","lines_changed":[10,11,32,33,34,35]},{"filename":"app/src/core/nodes.py", "type":"modified","lines_changed":[10]}]'
+   uv urn critiquely --repo_url https://github.com/Critiquely/critiquely.git --original_pr_url https://github.com/Critiquely/critiquely/pull/31 --branch langgraph --modified_files '[{"filename":"app/src/main.py", "type":"modified","lines_changed":[10,11,32,33,34,35]},{"filename":"app/src/core/nodes.py", "type":"modified","lines_changed":[10]}]'
    ```
 
 ## MCP Integration
