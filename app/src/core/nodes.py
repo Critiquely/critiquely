@@ -46,8 +46,18 @@ def clone_repo(state: DevAgentState) -> dict:
         return {"clone_path": temp_dir, "messages": [HumanMessage(content=msg)]}
 
     except GitCommandError as exc:
-        error = f"❌ Failed to clone {repo_url}@{branch}: {exc}"
-        logger.error(error)
+        # Extract specific error details from the exception
+        error_msg = str(exc)
+        if "Authentication failed" in error_msg:
+            error = f"❌ Authentication failed while cloning {repo_url}@{branch}. Please check your credentials."
+        elif "not found" in error_msg.lower():
+            error = f"❌ Repository {repo_url} not found. Please verify the repository URL."
+        elif "already exists" in error_msg:
+            error = f"❌ Directory already exists at {temp_dir}. Cannot clone repository."
+        else:
+            error = f"❌ Failed to clone {repo_url}@{branch}: {error_msg}"
+        logger.error(f"Clone failed: {error_msg}")
+        logger.error(f"Full exception: {exc}")
         return {"messages": [HumanMessage(content=error)]}
 
 
