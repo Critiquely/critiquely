@@ -35,21 +35,20 @@ async def get_mcp_client() -> AsyncGenerator[MultiServerMCPClient, None]:
             #     ],
             #     "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": settings.github_token},
             # },
-            # Temporarily commented out until proper MCP server setup
-            # "mcp-server-git": {
-            #     "transport": "stdio",
-            #     "command": "uvx",
-            #     "args": ["mcp-server-git"],
-            # },
-            # "filesystem": {
-            #     "transport": "stdio",
-            #     "command": "npx",
-            #     "args": [
-            #         "-y",
-            #         "@modelcontextprotocol/server-filesystem",
-            #         get_temp_dir(),
-            #     ],
-            # },
+            "mcp-server-git": {
+                "transport": "stdio",
+                "command": "uvx",
+                "args": ["mcp-server-git"],
+            },
+            "filesystem": {
+                "transport": "stdio",
+                "command": "npx",
+                "args": [
+                    "-y",
+                    "@modelcontextprotocol/server-filesystem",
+                    get_temp_dir(),
+                ],
+            },
         }
     )
 
