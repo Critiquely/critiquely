@@ -27,7 +27,7 @@ _Critiquely_ is an AI-powered code review application designed to review code ch
 
 3. Run the CLI:
    ```bash
-   uv urn critiquely --repo_url https://github.com/Critiquely/critiquely.git --original_pr_url https://github.com/Critiquely/critiquely/pull/31 --branch langgraph --modified_files '[{"filename":"app/src/main.py", "type":"modified","lines_changed":[10,11,32,33,34,35]},{"filename":"app/src/core/nodes.py", "type":"modified","lines_changed":[10]}]'
+   uv run critiquely --repo_url https://github.com/Critiquely/critiquely.git --original_pr_url https://github.com/Critiquely/critiquely/pull/31 --branch langgraph --modified_files '[{"filename":"app/src/main.py", "type":"modified","lines_changed":[10,11,32,33,34,35]},{"filename":"app/src/core/nodes.py", "type":"modified","lines_changed":[10]}]'
    ```
 
 ## MCP Integration

@@ -10,15 +10,22 @@ ENV GITHUB_TOKEN=$GITHUB_TOKEN \
 
 WORKDIR /app
 
-# Install system dependencies
+# Install curl, bash, gnupg, ca-certificates, git — then install Node.js 20
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git curl && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        bash \
+        gnupg \
+        ca-certificates \
+        git && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy uv binary
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
-# Copy application (incl. pyproject.toml, uv.lock, and src/)
+# Copy the app (including pyproject.toml, uv.lock, and source files)
 COPY app/ ./
 
 # Install Python dependencies
