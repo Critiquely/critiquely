@@ -1,6 +1,6 @@
 # Critiquely
 
-_Critiquely_ is an AI-powered CLI tool designed to review code changes in GitHub repositories. It analyzes specific file modifications and optionally opens pull requests with meaningful improvements
+_Critiquely_ is an AI-powered code review application designed to review code changes in GitHub repositories. It supports both CLI usage and production queue processing modes for analyzing file modifications and providing meaningful feedback.
 
 ## Requirements
 
@@ -29,7 +29,7 @@ _Critiquely_ is an AI-powered CLI tool designed to review code changes in GitHub
 
 3. Run the CLI:
    ```bash
-   critiquely --repo_url https://github.com/Critiquely/critiquely.git --original_pr_url https://github.com/Critiquely/critiquely/pull/31 --branch langgraph --modified_files '[{"filename":"cli/src/main.py", "type":"modified","lines_changed":[10,11,32,33,34,35]},{"filename":"cli/src/core/nodes.py", "type":"modified","lines_changed":[10]}]'
+   critiquely --repo_url https://github.com/Critiquely/critiquely.git --original_pr_url https://github.com/Critiquely/critiquely/pull/31 --branch langgraph --modified_files '[{"filename":"app/src/main.py", "type":"modified","lines_changed":[10,11,32,33,34,35]},{"filename":"app/src/core/nodes.py", "type":"modified","lines_changed":[10]}]'
    ```
 
 ## MCP Integration
