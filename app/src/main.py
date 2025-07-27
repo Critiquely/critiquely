@@ -26,11 +26,11 @@ logger = logging.getLogger(__name__)
     help="Run in queue worker mode instead of processing a single request"
 )
 @click.option(
-    "--repo_url", 
+    "--repo-url", 
     help="The repository URL you want to critique (required for CLI mode)"
 )
 @click.option(
-    "--original_pr_url", 
+    "--original-pr-url", 
     help="The pull request URL you want to critique (required for CLI mode)"
 )
 @click.option(
@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
     help="The branch within the repository you want to critique (required for CLI mode)",
 )
 @click.option(
-    "--modified_files",
+    "--modified-files",
     help="A json object consisting of the modified files (required for CLI mode)",
 )
 @click.pass_context
