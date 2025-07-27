@@ -52,23 +52,60 @@ def main(
 ) -> None:
     """Critiquely - Code review tool with CLI and queue processing modes."""
     
+def validate_cli_arguments(repo_url: str, original_pr_url: str, branch: str, modified_files: str) -> None:
+    """Validate required arguments for CLI mode."""
+    required_args = {
+        'repo_url': repo_url,
+        'original_pr_url': original_pr_url,
+        'branch': branch,
+        'modified_files': modified_files
+    }
+    
+    missing_args = [arg for arg, value in required_args.items() if not value]
+    if missing_args:
+        logger.error(f"❌ Missing required arguments for CLI mode: {', '.join(missing_args)}")
+        logger.info("💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments")
+        sys.exit(1)
+
+
+@click.command()
+@click.option(
+    "--queue-mode", 
+    is_flag=True, 
+    help="Run in queue worker mode instead of processing a single request"
+)
+@click.option(
+    "--repo-url", 
+    help="The repository URL you want to critique (required for CLI mode)"
+)
+@click.option(
+    "--original-pr-url", 
+    help="The pull request URL you want to critique (required for CLI mode)"
+)
+@click.option(
+    "--branch",
+    help="The branch within the repository you want to critique (required for CLI mode)",
+)
+@click.option(
+    "--modified-files",
+    help="A json object consisting of the modified files (required for CLI mode)",
+)
+@click.pass_context
+def main(
+    ctx: click.Context,
+    queue_mode: bool,
+    repo_url: str,
+    original_pr_url: str,
+    branch: str,
+    modified_files: str,
+) -> None:
+    """Critiquely - Code review tool with CLI and queue processing modes."""
+    
     if queue_mode:
         logger.info("🚀 Starting Critiquely Queue Worker")
         start_queue_worker()
     else:
-        # Validate required arguments for CLI mode
-        required_args = {
-            'repo_url': repo_url,
-            'original_pr_url': original_pr_url,
-            'branch': branch,
-            'modified_files': modified_files
-        }
-        
-        missing_args = [arg for arg, value in required_args.items() if not value]
-        if missing_args:
-            logger.error(f"❌ Missing required arguments for CLI mode: {', '.join(missing_args)}")
-            logger.info("💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments")
-            sys.exit(1)
+        validate_cli_arguments(repo_url, original_pr_url, branch, modified_files)
 
         async def run():
             if not settings.github_token:
