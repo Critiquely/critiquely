@@ -38,6 +38,10 @@ Critiquely integrates with multiple MCP servers:
 - **Filesystem MCP** for local file manipulation
 - **Git MCP Server** for performing git operaitons e.g. git clone
 
+## Workflow
+
+![workflow](./graph_mermaid.png)
+
 ## License
 
 This project is licensed under the terms of the [MIT License](LICENSE).
