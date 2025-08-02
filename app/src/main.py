@@ -9,14 +9,21 @@ from src.config import settings
 from src.core.review import run_review_graph
 from src.queue import start_queue_worker
 
-logging.basicConfig(
-    format="%(asctime)s %(levelname)7s %(message)s",
-    datefmt="%H:%M:%S",
-    level=logging.INFO,
-)
-logging.getLogger("httpx").setLevel(logging.WARNING)
+def configure_logging():
+    """Configure logging for the application.
+    
+    Sets up basic logging configuration with timestamp, level, and message.
+    Adjusts specific logger levels as needed.
+    """
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)7s %(message)s",
+        datefmt="%H:%M:%S",
+        level=logging.INFO,
+    )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
+configure_logging()
 
 
 @click.command()
