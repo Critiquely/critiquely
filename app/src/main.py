@@ -16,9 +16,10 @@ def configure_logging():
     Adjusts specific logger levels as needed.
     """
     logging.basicConfig(
-        format="%(asctime)s %(levelname)7s %(message)s",
-        datefmt="%H:%M:%S",
+        format='%(asctime)s %(levelname)s %(name)s %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
         level=logging.INFO,
+        class_=logging.JSONFormatter
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
