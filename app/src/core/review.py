@@ -1,0 +1,30 @@
+# src/core/review.py
+from src.core.graph import build_graph
+
+from uuid import uuid4
+import json
+import logging
+
+
+async def run_review_graph(
+    repo_url: str, original_pr_url: str, base_branch: str, modified_files: str
+):
+    # Build the graph
+    graph = await build_graph()
+
+    # Define the input state
+    input_state = {
+        "repo_url": repo_url,
+        "original_pr_url": original_pr_url,
+        "base_branch": base_branch,
+        "modified_files": json.loads(modified_files),
+        "messages": [],
+    }
+
+    config = {"configurable": {"thread_id": str(uuid4())}}
+
+    # Stream the output
+    async for event in graph.astream(input_state, config):
+        for value in event.values():
+            content = value["messages"][-1].content
+            logging.info(f"🤖 Assistant: {content}")

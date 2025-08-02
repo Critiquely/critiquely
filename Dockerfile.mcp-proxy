@@ -1,7 +1,0 @@
-# file: mcp-proxy.Dockerfile
-
-FROM ghcr.io/sparfenyuk/mcp-proxy:latest
-
-RUN apk add --no-cache docker-cli
-
-ENTRYPOINT [ "mcp-proxy" ]
