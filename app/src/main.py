@@ -9,14 +9,22 @@ from src.config import settings
 from src.core.review import run_review_graph
 from src.queue import start_queue_worker
 
-logging.basicConfig(
-    format="%(asctime)s %(levelname)7s %(message)s",
-    datefmt="%H:%M:%S",
-    level=logging.INFO,
-)
-logging.getLogger("httpx").setLevel(logging.WARNING)
+def configure_logging():
+    """Configure logging for the application.
+    
+    Sets up basic logging configuration with timestamp, level, and message.
+    Adjusts specific logger levels as needed.
+    """
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)s %(name)s %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        level=logging.INFO,
+        class_=logging.JSONFormatter
+    )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
+configure_logging()
 
 
 @click.command()
@@ -56,19 +64,33 @@ def main(
         logger.info("🚀 Starting Critiquely Queue Worker")
         start_queue_worker()
     else:
-        # Validate required arguments for CLI mode
-        required_args = {
-            'repo_url': repo_url,
-            'original_pr_url': original_pr_url,
-            'branch': branch,
-            'modified_files': modified_files
-        }
+        validate_cli_arguments(repo_url, original_pr_url, branch, modified_files)
+
+
+def validate_cli_arguments(repo_url: str, original_pr_url: str, branch: str, modified_files: str) -> None:
+    """Validate required CLI mode arguments.
+    
+    Args:
+        repo_url: The repository URL to critique
+        original_pr_url: The pull request URL to critique
+        branch: The branch to critique
+        modified_files: JSON object of modified files
         
-        missing_args = [arg for arg, value in required_args.items() if not value]
-        if missing_args:
-            logger.error(f"❌ Missing required arguments for CLI mode: {', '.join(missing_args)}")
-            logger.info("💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments")
-            sys.exit(1)
+    Raises:
+        SystemExit: If any required arguments are missing
+    """
+    required_args = {
+        'repo_url': repo_url,
+        'original_pr_url': original_pr_url,
+        'branch': branch,
+        'modified_files': modified_files
+    }
+    
+    missing_args = [arg for arg, value in required_args.items() if not value]
+    if missing_args:
+        logger.error(f"❌ Missing required arguments for CLI mode: {', '.join(missing_args)}")
+        logger.info("💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments")
+        sys.exit(1)
 
         async def run():
             if not settings.github_token:
