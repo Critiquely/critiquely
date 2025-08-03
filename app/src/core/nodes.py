@@ -17,11 +17,15 @@ from src.utils.fs import get_temp_dir
 from src.utils.git import create_github_https_url
 from src.utils.state import get_state_value
 
+###############################################################################
+#                            L O G G I N G   S E T U P                          #
+###############################################################################
+
 # Use the root logger configuration from CLI
 logger = logging.getLogger(__name__)
 
 ###############################################################################
-#                                G I T   N O D E S                            #
+#                            G I T   N O D E S                          #
 ###############################################################################
 
 
