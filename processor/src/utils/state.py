@@ -1,4 +1,7 @@
+import logging
 from src.core.state import DevAgentState
+
+logger = logging.getLogger(__name__)
 
 
 def get_state_value(state: DevAgentState, key: str) -> str:

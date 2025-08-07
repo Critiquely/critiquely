@@ -1,5 +1,5 @@
 [project]
-name = "critiquely"
+name = "processor"
 version = "1.0.0"
 description = "Critiquely - Code review application with CLI and queue processing modes"
 authors = [{name = "Critiquely", email = "hello@critiquely.com"}]
