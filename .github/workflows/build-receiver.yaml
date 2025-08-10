@@ -36,6 +36,7 @@
 
         - name: Build, tag, and push the image to Amazon ECR
           id: build-image
+          working-directory: ./receiver
           env:
             ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
             ECR_REPOSITORY: critiquely-receiver
