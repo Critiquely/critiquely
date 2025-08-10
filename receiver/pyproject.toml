@@ -20,6 +20,9 @@ dev = [
     "black>=25.1.0",
 ]
 
+[tool.flit.module]
+name = "src"
+
 [tool.black]
 line-length = 88
 target-version = ['py39']
