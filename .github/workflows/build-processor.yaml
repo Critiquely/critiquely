@@ -1,4 +1,4 @@
-  name: Push the Docker image to AWS ECR Repo
+  name: Build and Push Processor Image
   on:
     push:
       branches:
