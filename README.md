@@ -15,7 +15,7 @@ _Critiquely_ is an AI-powered code review application designed to review code ch
 1. Clone the repository:
    ```bash
    git clone https://github.com/your-org/critiquely.git
-   cd critiquely
+   cd critiquely/processor
    ```
 
 2. Set up environment:
