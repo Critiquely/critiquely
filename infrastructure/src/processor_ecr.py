@@ -1,9 +1,9 @@
 import pulumi
 import pulumi_aws as aws
 
-ecr_name = "cli"
+ecr_name = "processor"
 
-ecr = aws.ecr.Repository("cli",
+ecr = aws.ecr.Repository(ecr_name,
     name=ecr_name,
     image_tag_mutability="MUTABLE",
     image_scanning_configuration={

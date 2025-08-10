@@ -34,7 +34,7 @@ jobs:
       - uses: pulumi/actions@v6
         with:
           command: preview
-          stack-name: critiquely/cli/prod
+          stack-name: critiquely/critiquely/dev
           work-dir: ./infrastructure/src
           comment-on-pr: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
