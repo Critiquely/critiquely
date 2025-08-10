@@ -1,7 +1,9 @@
 import json
 import logging
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional, Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -19,6 +21,81 @@ from src.utils.state import get_state_value
 
 # Use the root logger configuration from CLI
 logger = logging.getLogger(__name__)
+
+
+###############################################################################
+#                          SHARED UTILITIES AND BASE CLASSES                 #
+###############################################################################
+
+
+class GitOperationError(Exception):
+    """Custom exception for Git operations"""
+    pass
+
+
+@dataclass
+class NodeResult:
+    """Standardized return type for all nodes"""
+    success: bool
+    message: str
+    updates: Optional[dict] = None
+    error: Optional[str] = None
+    
+    def to_state_update(self) -> dict:
+        """Convert to state update dictionary"""
+        result = {"messages": [HumanMessage(content=self.message)]}
+        if self.updates:
+            result.update(self.updates)
+        return result
+
+
+class GitOperations:
+    """Shared Git operations with consistent error handling"""
+    
+    @staticmethod
+    def get_repo(clone_path: str) -> Repo:
+        """Open a repo with standardized error handling"""
+        try:
+            return Repo(clone_path)
+        except (NoSuchPathError, InvalidGitRepositoryError) as e:
+            msg = f"❌ Error: Cannot open repo at '{clone_path}': {e}"
+            logger.error(msg)
+            raise GitOperationError(msg)
+    
+    @staticmethod
+    def setup_remote_with_token(repo: Repo, repo_url: str) -> Any:
+        """Setup remote URL with token injection"""
+        git_url = create_github_https_url(repo_url)
+        origin = repo.remote(name="origin")
+        origin.set_url(git_url)
+        return origin
+    
+    @staticmethod
+    def get_state_values(state: DevAgentState, *keys: str) -> tuple:
+        """Get multiple state values at once"""
+        return tuple(get_state_value(state, key) for key in keys)
+
+
+class BaseNode:
+    """Base class for all nodes with common functionality"""
+    
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+    
+    def create_success_result(self, message: str, updates: Optional[dict] = None) -> NodeResult:
+        """Create a successful node result"""
+        self.logger.info(message)
+        return NodeResult(success=True, message=message, updates=updates)
+    
+    def create_error_result(self, error: str) -> NodeResult:
+        """Create an error node result"""
+        self.logger.error(error)
+        return NodeResult(success=False, message=error, error=error)
+    
+    def handle_git_error(self, operation: str, exc: Exception) -> NodeResult:
+        """Standardized Git error handling"""
+        error = f"❌ Failed to {operation}: {exc}"
+        return self.create_error_result(error)
 
 ###############################################################################
 #                                G I T   N O D E S                            #
@@ -88,7 +165,6 @@ def commit_code(state: DevAgentState) -> DevAgentState:
     branch = get_state_value(state, "new_branch")
     repo_url = get_state_value(state, "repo_url")
     current_recommendation = get_state_value(state, "current_recommendation")
-    print(current_recommendation)
 
     git_url = create_github_https_url(repo_url)
     recommendation_summary = current_recommendation.get("summary", [])
