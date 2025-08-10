@@ -26,7 +26,7 @@ RUN apt-get update && \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 # Copy the app (including pyproject.toml, uv.lock, and source files)
-COPY app/ ./
+COPY . ./
 
 # Install Python dependencies
 RUN uv sync --locked
