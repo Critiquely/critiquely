@@ -40,7 +40,7 @@ Critiquely integrates with multiple MCP servers:
 
 ## Workflow
 
-![workflow](./graph_mermaid.png)
+![workflow](./processor/graph_mermaid.png)
 
 ## License
 

@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 
 [[package]]
@@ -242,65 +242,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697, upload-time = "2022-10-25T02:36:22.414Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335, upload-time = "2022-10-25T02:36:20.889Z" },
-]
-
-[[package]]
-name = "critiquely"
-version = "1.0.0"
-source = { editable = "." }
-dependencies = [
-    { name = "arxiv" },
-    { name = "click" },
-    { name = "gitpython" },
-    { name = "ipython" },
-    { name = "langchain", extra = ["anthropic", "openai"] },
-    { name = "langchain-anthropic" },
-    { name = "langchain-community" },
-    { name = "langchain-mcp-adapters" },
-    { name = "langchain-openai" },
-    { name = "langgraph" },
-    { name = "langsmith" },
-    { name = "npx" },
-    { name = "pika" },
-    { name = "pillow" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "pygithub" },
-    { name = "wikipedia" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "black" },
-    { name = "pylint" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "arxiv", specifier = ">=2.2.0" },
-    { name = "click", specifier = ">=8.1.8" },
-    { name = "gitpython", specifier = ">=3.1.44" },
-    { name = "ipython", specifier = ">=9.3.0" },
-    { name = "langchain", extras = ["anthropic", "openai"], specifier = ">=0.3.25" },
-    { name = "langchain-anthropic", specifier = ">=0.3.15" },
-    { name = "langchain-community", specifier = ">=0.3.24" },
-    { name = "langchain-mcp-adapters", specifier = ">=0.1.4" },
-    { name = "langchain-openai", specifier = ">=0.3.19" },
-    { name = "langgraph", specifier = ">=0.4.8" },
-    { name = "langsmith", specifier = ">=0.3.44" },
-    { name = "npx", specifier = ">=0.1.6" },
-    { name = "pika", specifier = ">=1.3.2" },
-    { name = "pillow", specifier = ">=11.2.1" },
-    { name = "pydantic", specifier = ">=2.5.0" },
-    { name = "pydantic-settings", specifier = ">=2.0.0" },
-    { name = "pygithub", specifier = ">=2.6.1" },
-    { name = "wikipedia", specifier = ">=1.4.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "black", specifier = ">=25.1.0" },
-    { name = "pylint", specifier = ">=3.3.7" },
 ]
 
 [[package]]
@@ -1153,6 +1094,65 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/fe/8b/3c73abc9c759ecd3f1f7ceff6685840859e8070c4d947c93fae71f6a0bf2/platformdirs-4.3.8.tar.gz", hash = "sha256:3d512d96e16bcb959a814c9f348431070822a6496326a4be0911c40b5a74c2bc", size = 21362, upload-time = "2025-05-07T22:47:42.121Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fe/39/979e8e21520d4e47a0bbe349e2713c0aac6f3d853d0e5b34d76206c439aa/platformdirs-4.3.8-py3-none-any.whl", hash = "sha256:ff7059bb7eb1179e2685604f4aaf157cfd9535242bd23742eadc3c13542139b4", size = 18567, upload-time = "2025-05-07T22:47:40.376Z" },
+]
+
+[[package]]
+name = "processor"
+version = "1.0.0"
+source = { editable = "." }
+dependencies = [
+    { name = "arxiv" },
+    { name = "click" },
+    { name = "gitpython" },
+    { name = "ipython" },
+    { name = "langchain", extra = ["anthropic", "openai"] },
+    { name = "langchain-anthropic" },
+    { name = "langchain-community" },
+    { name = "langchain-mcp-adapters" },
+    { name = "langchain-openai" },
+    { name = "langgraph" },
+    { name = "langsmith" },
+    { name = "npx" },
+    { name = "pika" },
+    { name = "pillow" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "pygithub" },
+    { name = "wikipedia" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "black" },
+    { name = "pylint" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "arxiv", specifier = ">=2.2.0" },
+    { name = "click", specifier = ">=8.1.8" },
+    { name = "gitpython", specifier = ">=3.1.44" },
+    { name = "ipython", specifier = ">=9.3.0" },
+    { name = "langchain", extras = ["anthropic", "openai"], specifier = ">=0.3.25" },
+    { name = "langchain-anthropic", specifier = ">=0.3.15" },
+    { name = "langchain-community", specifier = ">=0.3.24" },
+    { name = "langchain-mcp-adapters", specifier = ">=0.1.4" },
+    { name = "langchain-openai", specifier = ">=0.3.19" },
+    { name = "langgraph", specifier = ">=0.4.8" },
+    { name = "langsmith", specifier = ">=0.3.44" },
+    { name = "npx", specifier = ">=0.1.6" },
+    { name = "pika", specifier = ">=1.3.2" },
+    { name = "pillow", specifier = ">=11.2.1" },
+    { name = "pydantic", specifier = ">=2.5.0" },
+    { name = "pydantic-settings", specifier = ">=2.0.0" },
+    { name = "pygithub", specifier = ">=2.6.1" },
+    { name = "wikipedia", specifier = ">=1.4.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "black", specifier = ">=25.1.0" },
+    { name = "pylint", specifier = ">=3.3.7" },
 ]
 
 [[package]]
