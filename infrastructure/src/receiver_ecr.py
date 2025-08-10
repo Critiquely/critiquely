@@ -1,7 +1,7 @@
 import pulumi
 import pulumi_aws as aws
 
-ecr_name = "receiver"
+ecr_name = "critiquely-receiver"
 
 ecr = aws.ecr.Repository(ecr_name,
     name=ecr_name,
