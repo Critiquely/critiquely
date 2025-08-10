@@ -1,2 +1,2 @@
 import processor_ecr
-import receiver_ec
+import receiver_ecr
