@@ -45,12 +45,22 @@ async def build_graph(
             if not recommendations:
                 return []
             
-            sends = []
+            # Group recommendations by file
+            file_groups = {}
             for rec in recommendations:
+                file_path = rec.get("file", "")
+                if file_path not in file_groups:
+                    file_groups[file_path] = []
+                file_groups[file_path].append(rec)
+            
+            # Create one Send per file (with all its recommendations)
+            sends = []
+            for file_path, file_recs in file_groups.items():
                 subgraph_state = {
                     "messages": [],
                     "clone_path": state.get("clone_path"),
-                    "current_recommendation": rec,
+                    "file_recommendations": file_recs,  # All recommendations for this file
+                    "target_file": file_path,
                     "updated_files": []
                 }
                 sends.append(Send("apply_recommendation_graph", subgraph_state))

@@ -159,7 +159,8 @@ def create_branch(state: DevAgentState) -> DevAgentState:
         return {"messages": [HumanMessage(content=error)]}
 
 
-# --- Node: Create Branch ---
+
+# --- Node: Commit Code ---
 def commit_code(state: DevAgentState) -> DevAgentState:
     clone_path = get_state_value(state, "clone_path")
     branch = get_state_value(state, "new_branch")
@@ -414,41 +415,36 @@ def inspect_files(llm, state: DevAgentState) -> dict:
 def apply_recommendations_with_mcp(
     llm_with_tools, state: DevAgentState
 ) -> DevAgentState:
-    recommendation = state.get("current_recommendation")
-    if not recommendation:
-        logger.info("✅ No recommendation to apply. Skipping.")
+    file_recommendations = state.get("file_recommendations", [])
+    target_file = state.get("target_file", "")
+    
+    if not file_recommendations or not target_file:
+        logger.info("✅ No recommendations to apply. Skipping.")
         return {"messages": [], "updated_files": []}
 
-    file_path_str = recommendation.get("file", "")
-    if not file_path_str:
-        logger.warning("❌ No file path in recommendation")
-        return {"messages": [], "updated_files": []}
-        
-    file_path = Path(file_path_str)
-    recs = recommendation.get("recommendation")
-
-    if not recs:
-        logger.warning(f"❌ No recommendations for {file_path}")
-        return {"messages": [], "updated_files": []}
+    file_path = Path(target_file)
     if not file_path.exists():
         logger.error(f"❌ File not found: {file_path}")
         return {"messages": [], "updated_files": []}
 
     file_text = file_path.read_text(encoding="utf-8")
-    logger.info(f"🔍 Applying recommendation to {file_path.name}")
+    logger.info(f"🔍 Applying {len(file_recommendations)} recommendations to {file_path.name}")
 
-    # Handle both string and list recommendations
-    if isinstance(recs, str):
-        instructions = f"- {recs}"
-    else:
-        instructions = "\n".join(f"- {r}" for r in recs)
+    # Combine all recommendations for this file
+    all_instructions = []
+    for i, rec in enumerate(file_recommendations, 1):
+        summary = rec.get("summary", "")
+        recommendation = rec.get("recommendation", "")
+        all_instructions.append(f"{i}. {summary}: {recommendation}")
+    
+    instructions = "\n".join(all_instructions)
     prompt = HumanMessage(
         content=(
-            "You are a coding assistant. A user requested edits to a source file.\n\n"
+            "You are a coding assistant. A user requested multiple edits to a source file.\n\n"
             f"File path: {file_path}\n\n"
             f"File contents:\n{file_text}\n\n"
             f"Requested changes:\n{instructions}\n\n"
-            "Choose and invoke a tool from your toolkit. Return only the invocation."
+            "Apply ALL the requested changes in a single edit. Choose and invoke a tool from your toolkit. Return only the invocation."
         )
     )
     state.setdefault("messages", []).append(prompt)
@@ -459,7 +455,6 @@ def apply_recommendations_with_mcp(
     state["messages"].append(result)
 
     # Only return the fields that should be updated to avoid concurrency conflicts
-    logger.info(f"✅ Applied recommendations to {file_path.name}")
     return {
         "messages": state["messages"],
         "updated_files": [str(file_path)]

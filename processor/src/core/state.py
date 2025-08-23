@@ -51,6 +51,8 @@ class DevAgentState(TypedDict):
     # Recommendation Details
     current_recommendation: Optional[dict]
     recommendations: list[dict]
+    file_recommendations: Optional[list[dict]]  # Recommendations for a specific file
+    target_file: Optional[str]  # Target file path for grouped recommendations
 
     # PR Details
     original_pr_url: str
