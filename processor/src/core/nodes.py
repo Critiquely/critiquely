@@ -1,4 +1,3 @@
-import json
 import logging
 import tempfile
 from dataclasses import dataclass
@@ -394,6 +393,7 @@ def inspect_files(llm, state: DevAgentState) -> dict:
     state["messages"].append(response)
 
     try:
+        import json
         parsed = json.loads(response.content.strip())
     except json.JSONDecodeError as e:
         msg = f"❌ Failed to parse JSON: {e}"
