@@ -407,7 +407,8 @@ def inspect_files(llm, state: DevAgentState) -> dict:
 def apply_recommendations_with_mcp(
     llm_with_tools, state: DevAgentState
 ) -> DevAgentState:
-    recs_list = state.get("recommendations", [])
+    recommendation = state.get("recommendations", [])
+    logger.info("recommendation",recommendation)
     if not recs_list:
         logger.info("✅ No recommendations to apply. Skipping.")
         return state
