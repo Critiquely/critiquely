@@ -164,10 +164,17 @@ def commit_code(state: DevAgentState) -> DevAgentState:
     clone_path = get_state_value(state, "clone_path")
     branch = get_state_value(state, "new_branch")
     repo_url = get_state_value(state, "repo_url")
-    current_recommendation = get_state_value(state, "current_recommendation")
-
+    
+    # Get updated files for commit message context
+    updated_files = state.get("updated_files", [])
+    
     git_url = create_github_https_url(repo_url)
-    recommendation_summary = current_recommendation.get("summary", [])
+    
+    # Create a generic commit message for multiple recommendations
+    if updated_files:
+        files_summary = f"Updated {len(updated_files)} files"
+    else:
+        files_summary = "Applied code recommendations"
 
     # 2) Open the repo
     try:
@@ -186,7 +193,7 @@ def commit_code(state: DevAgentState) -> DevAgentState:
         # Stage all changes (new, modified, deleted)
         repo.git.add("--all")
         # Create a commit
-        repo.index.commit(recommendation_summary)
+        repo.index.commit(files_summary)
         msg = f"📝 Committed changes to '{branch}'"
         logger.info(msg)
         return {"messages": [HumanMessage(content=msg)]}
@@ -407,28 +414,34 @@ def inspect_files(llm, state: DevAgentState) -> dict:
 def apply_recommendations_with_mcp(
     llm_with_tools, state: DevAgentState
 ) -> DevAgentState:
-    recommendation = state.get("recommendations", [])
-    logger.info("recommendation",recommendation)
-    if not recs_list:
-        logger.info("✅ No recommendations to apply. Skipping.")
-        return state
+    recommendation = state.get("current_recommendation")
+    if not recommendation:
+        logger.info("✅ No recommendation to apply. Skipping.")
+        return {"messages": [], "updated_files": []}
 
-    current = recs_list.pop(0)
-    state.update({"current_recommendation": current})
-    file_path = Path(current.get("file", ""))
-    recs = current.get("recommendation")
+    file_path_str = recommendation.get("file", "")
+    if not file_path_str:
+        logger.warning("❌ No file path in recommendation")
+        return {"messages": [], "updated_files": []}
+        
+    file_path = Path(file_path_str)
+    recs = recommendation.get("recommendation")
 
     if not recs:
         logger.warning(f"❌ No recommendations for {file_path}")
-        return state
+        return {"messages": [], "updated_files": []}
     if not file_path.exists():
         logger.error(f"❌ File not found: {file_path}")
-        return state
+        return {"messages": [], "updated_files": []}
 
     file_text = file_path.read_text(encoding="utf-8")
     logger.info(f"🔍 Applying recommendation to {file_path.name}")
 
-    instructions = "\n".join(f"- {r}" for r in recs)
+    # Handle both string and list recommendations
+    if isinstance(recs, str):
+        instructions = f"- {recs}"
+    else:
+        instructions = "\n".join(f"- {r}" for r in recs)
     prompt = HumanMessage(
         content=(
             "You are a coding assistant. A user requested edits to a source file.\n\n"
@@ -445,8 +458,9 @@ def apply_recommendations_with_mcp(
     logger.info("✅ Received tool invocation from LLM")
     state["messages"].append(result)
 
-    state.setdefault("updated_files", []).append(str(file_path))
-    logger.info(
-        f"✅ Applied recommendations to {file_path.name}; {len(recs_list)} remaining"
-    )
-    return state
+    # Only return the fields that should be updated to avoid concurrency conflicts
+    logger.info(f"✅ Applied recommendations to {file_path.name}")
+    return {
+        "messages": state["messages"],
+        "updated_files": [str(file_path)]
+    }
