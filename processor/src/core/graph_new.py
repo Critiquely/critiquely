@@ -39,77 +39,9 @@ async def build_graph(
         llm = ChatAnthropic(model=llm_model)
         llm_with_tools = llm.bind_tools(tools)
 
-        def continue_to_recommendations(state: DevAgentState):
-            recommendations = state.get('recommendations', [])
-            
-            if not recommendations:
-                return []
-            
-            # Group recommendations by file
-            file_groups = {}
-            for rec in recommendations:
-                file_path = rec.get("file", "")
-                if file_path not in file_groups:
-                    file_groups[file_path] = []
-                file_groups[file_path].append(rec)
-            
-            # Create one Send per file (with all its recommendations)
-            sends = []
-            for file_path, file_recs in file_groups.items():
-                subgraph_state = {
-                    "messages": [],
-                    "clone_path": state.get("clone_path"),
-                    "file_recommendations": file_recs,  # All recommendations for this file
-                    "target_file": file_path,
-                    "updated_files": []
-                }
-                sends.append(Send("apply_recommendation_graph", subgraph_state))
-            
-            return sends
-        
-        def route_after_inspection(state: DevAgentState):
-            # Since inspect_files now processes all files at once, 
-            # we directly proceed to recommendations
-            return continue_to_recommendations(state)
-
         memory = checkpointer or MemorySaver()
-
-        tool_node = ToolNode(tools)
-
-        # Subgraph
-
-        subgraph_builder = StateGraph(DevAgentState)
-        subgraph_builder.add_node(
-            "apply_recommendations",
-            partial(apply_recommendations_with_mcp, llm_with_tools),
-        )
-        subgraph_builder.add_node("tool_call", tool_node)
-
-        subgraph_builder.set_entry_point("apply_recommendations")
-        subgraph_builder.add_conditional_edges(
-            "apply_recommendations",
-            has_tool_invocation,
-            {
-                "tools": "tool_call",
-                END: END,
-            },
-        )
-        subgraph_builder.add_edge("tool_call", END)
-        compiled_subgraph = subgraph_builder.compile()
-        
-        # Create a wrapper that ensures only safe state keys are returned
-        async def apply_recommendation_graph(state):
-            result = await compiled_subgraph.ainvoke(state)
-            # Only return keys that are safe for concurrent updates
-            safe_result = {
-                "messages": result.get("messages", []),
-                "updated_files": result.get("updated_files", [])
-            }
-            return safe_result
-
-        # Main Graph
         workflow = StateGraph(WorkflowState)
-        
+
         # ── Main Workflow ──
         workflow.add_node("clone_repo", clone_repo)
         workflow.add_node("generate_recommendations_graph", generate_recommendations_graph)
@@ -128,52 +60,43 @@ async def build_graph(
 
         # ── Recommendations Subgraph ──
         generate_recommendations_workflow = StateGraph(RecommendationsState)
-        generate_recommendations_workflow.add_node("agent", call_agent)
+        generate_recommendations_workflow.add_node("generate_recommendations", generate_recommendations)
         generate_recommendations_workflow.add_node("tools", tool_node)
-        generate_recommendations_workflow.set_entry_point("agent")
+        generate_recommendations_workflow.set_entry_point("generate_recommendations")
         generate_recommendations_workflow.add_conditional_edges(
-            "agent",
+            "generate_recommendations",
             should_continue,
             {
                 "continue": "tools",
                 "end": END,
             },
         )
-        generate_recommendations_workflow.add_edge("tools", "agent")
+        generate_recommendations_workflow.add_edge("tools", "generate_recommendations")
         generate_recommendations_graph = generate_recommendations_workflow.compile()
         
-        # ── Apply Recommendations Subgraph ── (this one was WIP)
+        # ── Apply Recommendations Subgraph ──
         apply_recommendations_workflow = StateGraph(RecommendationsState)
-        apply_recommendations_workflow.add_node("apply_recommendations", apply_recommendations_with_mcp)
-        apply_recommendations_workflow.add_node("tool_call", tool_node)
-        apply_recommendations_workflow.set_entry_point("apply_recommendations")
+        apply_recommendations_workflow.add_node("create_branch", create_branch)
+        apply_recommendations_workflow.add_node("apply_recommendations", apply_recommendations)
+        apply_recommendations_workflow.add_node("tools", tool_node)
+        apply_recommendations_workflow.add_node("commit_code", commit_code)  # Single commit after all parallel work
+        apply_recommendations_workflow.add_node("push_code", push_code)
+        apply_recommendations_workflow.add_node("pr_repo", pr_repo)
+
+        apply_recommendations_workflow.set_entry_point("create_branch")
+        apply_recommendations_workflow.add_edge("create_branch", "apply_recommendations")
         apply_recommendations_workflow.add_conditional_edges(
             "apply_recommendations",
-            has_tool_invocation,
+            should_continue,
             {
-                "tools": "tool_call",
-                END: END,
+                "continue": "tools",
+                "end": "commit_code",
             },
         )
-        apply_recommendations_workflow.add_edge("tool_call", END)
+        apply_recommendations_workflow.add_edge("tools", "apply_recommendations")
+        apply_recommendations_workflow.add_edge("commit_code", "push_code")
+        apply_recommendations_workflow.add_edge("push_code", "pr_repo")
         apply_recommendations_graph = apply_recommendations_workflow.compile()
-
-
-        # ── Edges ──
-        workflow.set_entry_point("clone_repo")
-        workflow.add_edge("clone_repo", "create_branch")
-        workflow.add_edge("create_branch", "inspect_files")
-        workflow.add_conditional_edges(
-            "inspect_files",
-            route_after_inspection
-        )
-        
-        workflow.add_edge("apply_recommendation_graph", "commit_all_changes")
-        workflow.add_edge("commit_all_changes", "push_code")
-        workflow.add_edge("push_code", "pr_repo")
-        workflow.add_edge("pr_repo", "comment_on_original_pr")
-        # ── Compile ──
-        graph = workflow.compile(checkpointer=memory)
 
         # ── Visualise the graph ──
         save_mermaid_png(graph)
