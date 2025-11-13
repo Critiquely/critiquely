@@ -25,7 +25,7 @@ from src.utils.mermaid import save_mermaid_png
 
 async def build_graph(
     *,
-    llm_model: str = "claude-3-5-sonnet-latest",
+    llm_model: str = "claude-sonnet-4-5-20250929",
     checkpointer: Optional[object] = None,
 ) -> StateGraph:
     async with get_mcp_client() as client:
