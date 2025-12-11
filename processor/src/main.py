@@ -57,18 +57,20 @@ def main(
         start_queue_worker()
     else:
         # Validate required arguments for CLI mode
-        required_args = {
-            'repo_url': repo_url,
-            'original_pr_url': original_pr_url,
-            'branch': branch,
-            'modified_files': modified_files
-        }
+        missing_args = []
+        if not repo_url:
+            missing_args.append('repo_url')
+        if not original_pr_url:
+            missing_args.append('original_pr_url')
+        if not branch:
+            missing_args.append('branch')
+        if not modified_files:
+            missing_args.append('modified_files')
         
-        missing_args = [arg for arg, value in required_args.items() if not value]
         if missing_args:
-            logger.error(f"❌ Missing required arguments for CLI mode: {', '.join(missing_args)}")
-            logger.info("💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments")
-            sys.exit(1)
+            error_msg = f"❌ Missing required arguments for CLI mode: {', '.join(missing_args)}\n"
+            error_msg += "💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments"
+            ctx.fail(error_msg)
 
         async def run():
             if not settings.github_token:
