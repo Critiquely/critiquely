@@ -28,7 +28,7 @@
         
         - name: Make Repository Var Lowercase
           run: |
-            echo "repository_lowercase=${{ github.repository }}" >>${GITHUB_ENV}
+            echo "repository_lowercase=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
         - name: Build, tag, and push the image to GitHub Container Registry
           id: build-image
