@@ -26,12 +26,16 @@
           id: get-commit-hash
           run: echo "::set-output name=commit-hash::$(git rev-parse --short HEAD)"
 
+        - name: Make Repository Var Lowercase
+          run: |
+            echo "repository_lowercase=${{ github.repository }}" >>${GITHUB_ENV}
+
         - name: Build, tag, and push the image to GitHub Container Registry
           id: build-image
           working-directory: ./receiver
           env:
             GHCR_REGISTRY: ghcr.io
-            GHCR_REPOSITORY: ${{ github.repository }}/receiver
+            GHCR_REPOSITORY: ${{ env.repository_lowercase }}/receiver
             IMAGE_TAG: ${{ steps.get-commit-hash.outputs.commit-hash }}
           run: |
             docker build -t $GHCR_REGISTRY/$GHCR_REPOSITORY:$IMAGE_TAG -t $GHCR_REGISTRY/$GHCR_REPOSITORY:latest .
