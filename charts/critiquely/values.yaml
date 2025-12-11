@@ -58,7 +58,7 @@ rabbitmq:
   enabled: true
   auth:
     username: critiquely
-    password: critiquely123
+    existingPasswordSecret: "critiquely-secrets"  # Use existing secret for password
   # persistence:
   #   enabled: true
   #   size: 8Gi
