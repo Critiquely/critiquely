@@ -1,4 +1,8 @@
 # Global configuration
+global:
+  security:
+    allowInsecureImages: true
+
 nameOverride: ""
 fullnameOverride: ""
 nodeSelector: {}
