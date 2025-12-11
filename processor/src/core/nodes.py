@@ -28,6 +28,39 @@ logger = logging.getLogger(__name__)
 ###############################################################################
 
 
+def strip_markdown_json(content: str) -> str:
+    """
+    Strip markdown code block formatting from JSON responses.
+
+    Handles cases where the LLM wraps JSON in markdown code blocks like:
+    ```json
+    {...}
+    ```
+
+    Args:
+        content: The raw response content that may contain markdown formatting
+
+    Returns:
+        The cleaned JSON string
+    """
+    content = content.strip()
+
+    # Check if content starts with markdown code block
+    if content.startswith("```"):
+        # Find the end of the first line (which contains ```json or just ```)
+        first_newline = content.find("\n")
+        if first_newline != -1:
+            # Remove the opening ```json or ``` line
+            content = content[first_newline + 1:]
+
+        # Remove the closing ``` line
+        if content.endswith("```"):
+            content = content[:-3].rstrip()
+
+    return content.strip()
+
+
+
 class GitOperationError(Exception):
     """Custom exception for Git operations"""
     pass
@@ -394,7 +427,8 @@ def inspect_files(llm, state: DevAgentState) -> dict:
     state["messages"].append(response)
 
     try:
-        parsed = json.loads(response.content.strip())
+        cleaned_content = strip_markdown_json(response.content)
+        parsed = json.loads(cleaned_content)
     except json.JSONDecodeError as e:
         msg = f"❌ Failed to parse JSON: {e}"
         logger.error(msg)
