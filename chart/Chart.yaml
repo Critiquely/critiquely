@@ -1,0 +1,16 @@
+apiVersion: v2
+name: Critiquely
+description: Automated code improvements for PRs
+type: application
+version: 0.1.0
+appVersion: "1.0"
+
+dependencies:
+  - name: rabbitmq
+    condition: rabbitmq.enabled
+    version: "12.0.10"
+    repository: "https://charts.bitnami.com/bitnami"
+  - name: keda
+    condition: keda.enabled
+    version: 2.17.2
+    repository: https://kedacore.github.io/charts

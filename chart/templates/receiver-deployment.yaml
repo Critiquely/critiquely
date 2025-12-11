@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "critiquely.fullname" . }}-receiver
+  labels:
+    {{- include "critiquely.labels" . | nindent 4 }}
+    app.kubernetes.io/component: receiver
+spec:
+  replicas: {{ .Values.receiver.replicas }}
+  selector:
+    matchLabels:
+      {{- include "critiquely.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: receiver
+  template:
+    metadata:
+      labels:
+        {{- include "critiquely.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: receiver
+    spec:
+      serviceAccountName: {{ include "critiquely.fullname" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.receiver.image.repository }}:{{ .Values.receiver.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.receiver.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: GITHUB_TOKEN
+              {{- if .Values.secrets.github.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.github.existingSecret }}
+                  key: {{ .Values.secrets.github.secretKey }}
+              {{- else}}
+              value: {{ .Values.secrets.github.token }}
+              {{- end}}
+            - name: RABBITMQ_HOST
+              value: {{ include "critiquely.fullname" . }}-rabbitmq
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_USER
+              value: {{ .Values.rabbitmq.auth.username | quote }}
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.rabbitmq.auth.existingPasswordSecret }}
+                  key: rabbitmq-password
+            - name: RABBITMQ_QUEUE
+              value: {{ .Values.rabbitmq.queue.name | quote }}
+          livenessProbe:
+            httpGet:
+              path: /docs
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /docs
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.receiver.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

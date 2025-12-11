@@ -1,0 +1,41 @@
+{{- if .Values.receiver.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "critiquely.fullname" . }}
+  labels:
+    {{- include "critiquely.labels" . | nindent 4 }}
+  {{- with .Values.receiver.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.receiver.ingress.className }}
+  ingressClassName: {{ .Values.receiver.ingress.className }}
+  {{- end }}
+  {{- if .Values.receiver.ingress.tls }}
+  tls:
+    {{- range .Values.receiver.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.receiver.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "critiquely.fullname" $ }}
+                port:
+                  number: {{ $.Values.receiver.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}

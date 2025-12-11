@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "critiquely.fullname" . }}-processor
+  labels:
+    {{- include "critiquely.labels" . | nindent 4 }}
+    app.kubernetes.io/component: processor
+spec:
+  replicas: {{ .Values.processor.replicas | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "critiquely.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: processor
+  template:
+    metadata:
+      labels:
+        {{- include "critiquely.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: processor
+    spec:
+      serviceAccountName: {{ include "critiquely.fullname" . }}
+      containers:
+        - name: processor
+          image: "{{ .Values.processor.image.repository }}:{{ .Values.processor.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.processor.image.pullPolicy }}
+          env:
+            - name: GITHUB_TOKEN
+            {{- if .Values.secrets.github.existingSecret}}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.github.existingSecret }}
+                  key: {{ .Values.secrets.github.secretKey }}
+            {{- else}}
+              value: {{ .Values.secrets.github.token }}
+            {{- end}}
+            - name: RABBITMQ_HOST
+              value: {{ include "critiquely.fullname" . }}-rabbitmq
+            - name: ANTHROPIC_API_KEY
+            {{- if .Values.secrets.anthropic.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.anthropic.existingSecret }}
+                  key: {{ .Values.secrets.anthropic.secretKey }}
+            {{- else}}
+              value: {{ .Values.secrets.anthropic.token }}
+            {{- end}}
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_USER
+              value: {{ .Values.rabbitmq.auth.username | quote }}
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{.Values.rabbitmq.auth.existingPasswordSecret}}
+                  key: rabbitmq-password
+            - name: QUEUE_NAME
+              value: {{ .Values.rabbitmq.queue.name | quote }}
+          resources:
+            {{- toYaml .Values.processor.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
