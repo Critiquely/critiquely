@@ -192,15 +192,23 @@ def create_branch(state: DevAgentState) -> DevAgentState:
         return {"messages": [HumanMessage(content=error)]}
 
 
-# --- Node: Create Branch ---
+
+# --- Node: Commit Code ---
 def commit_code(state: DevAgentState) -> DevAgentState:
     clone_path = get_state_value(state, "clone_path")
     branch = get_state_value(state, "new_branch")
     repo_url = get_state_value(state, "repo_url")
-    current_recommendation = get_state_value(state, "current_recommendation")
-
+    
+    # Get updated files for commit message context
+    updated_files = state.get("updated_files", [])
+    
     git_url = create_github_https_url(repo_url)
-    recommendation_summary = current_recommendation.get("summary", [])
+    
+    # Create a generic commit message for multiple recommendations
+    if updated_files:
+        files_summary = f"Updated {len(updated_files)} files"
+    else:
+        files_summary = "Applied code recommendations"
 
     # 2) Open the repo
     try:
@@ -219,7 +227,7 @@ def commit_code(state: DevAgentState) -> DevAgentState:
         # Stage all changes (new, modified, deleted)
         repo.git.add("--all")
         # Create a commit
-        repo.index.commit(recommendation_summary)
+        repo.index.commit(files_summary)
         msg = f"📝 Committed changes to '{branch}'"
         logger.info(msg)
         return {"messages": [HumanMessage(content=msg)]}
@@ -441,34 +449,36 @@ def inspect_files(llm, state: DevAgentState) -> dict:
 def apply_recommendations_with_mcp(
     llm_with_tools, state: DevAgentState
 ) -> DevAgentState:
-    recs_list = state.get("recommendations", [])
-    if not recs_list:
+    file_recommendations = state.get("file_recommendations", [])
+    target_file = state.get("target_file", "")
+    
+    if not file_recommendations or not target_file:
         logger.info("✅ No recommendations to apply. Skipping.")
-        return state
+        return {"messages": [], "updated_files": []}
 
-    current = recs_list.pop(0)
-    state.update({"current_recommendation": current})
-    file_path = Path(current.get("file", ""))
-    recs = current.get("recommendation")
-
-    if not recs:
-        logger.warning(f"❌ No recommendations for {file_path}")
-        return state
+    file_path = Path(target_file)
     if not file_path.exists():
         logger.error(f"❌ File not found: {file_path}")
-        return state
+        return {"messages": [], "updated_files": []}
 
     file_text = file_path.read_text(encoding="utf-8")
-    logger.info(f"🔍 Applying recommendation to {file_path.name}")
+    logger.info(f"🔍 Applying {len(file_recommendations)} recommendations to {file_path.name}")
 
-    instructions = "\n".join(f"- {r}" for r in recs)
+    # Combine all recommendations for this file
+    all_instructions = []
+    for i, rec in enumerate(file_recommendations, 1):
+        summary = rec.get("summary", "")
+        recommendation = rec.get("recommendation", "")
+        all_instructions.append(f"{i}. {summary}: {recommendation}")
+    
+    instructions = "\n".join(all_instructions)
     prompt = HumanMessage(
         content=(
-            "You are a coding assistant. A user requested edits to a source file.\n\n"
+            "You are a coding assistant. A user requested multiple edits to a source file.\n\n"
             f"File path: {file_path}\n\n"
             f"File contents:\n{file_text}\n\n"
             f"Requested changes:\n{instructions}\n\n"
-            "Choose and invoke a tool from your toolkit. Return only the invocation."
+            "Apply ALL the requested changes in a single edit. Choose and invoke a tool from your toolkit. Return only the invocation."
         )
     )
     state.setdefault("messages", []).append(prompt)
@@ -478,8 +488,8 @@ def apply_recommendations_with_mcp(
     logger.info("✅ Received tool invocation from LLM")
     state["messages"].append(result)
 
-    state.setdefault("updated_files", []).append(str(file_path))
-    logger.info(
-        f"✅ Applied recommendations to {file_path.name}; {len(recs_list)} remaining"
-    )
-    return state
+    # Only return the fields that should be updated to avoid concurrency conflicts
+    return {
+        "messages": state["messages"],
+        "updated_files": [str(file_path)]
+    }

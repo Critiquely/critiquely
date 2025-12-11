@@ -22,7 +22,7 @@ class ReviewState(TypedDict):
     active_file_name: Optional[str]
     active_file_content: Optional[str]
     active_file_lines_changed: Optional[str]
-    updated_files: list[str]  # Files modified by MCP tools
+    updated_files: Annotated[list[str], operator.add]  # Files modified by MCP tools
 
 
 class PRState(TypedDict):
@@ -51,6 +51,8 @@ class DevAgentState(TypedDict):
     # Recommendation Details
     current_recommendation: Optional[dict]
     recommendations: list[dict]
+    file_recommendations: Optional[list[dict]]  # Recommendations for a specific file
+    target_file: Optional[str]  # Target file path for grouped recommendations
 
     # PR Details
     original_pr_url: str
@@ -61,7 +63,7 @@ class DevAgentState(TypedDict):
     active_file_name: Optional[str]
     active_file_content: Optional[str]
     active_file_lines_changed: Optional[str]
-    updated_files: list[str]  # Files modified by MCP tools
+    updated_files: Annotated[list[str], operator.add]  # Files modified by MCP tools
 
 
 # Utility functions to work with state slices
