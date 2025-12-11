@@ -1,0 +1,23 @@
+apiVersion: v1
+entries:
+  Critiquely:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2025-12-11T10:22:06.17760715Z"
+    dependencies:
+    - condition: rabbitmq.enabled
+      name: rabbitmq
+      repository: https://charts.bitnami.com/bitnami
+      version: 12.0.10
+    - condition: keda.enabled
+      name: keda
+      repository: https://kedacore.github.io/charts
+      version: 2.17.2
+    description: Automated code improvements for PRs
+    digest: 6d03e431f72b69ed99615c611149b898084fa7d822e045a899eea9fd5661777d
+    name: Critiquely
+    type: application
+    urls:
+    - https://github.com/Critiquely/critiquely/releases/download/Critiquely-0.1.0/Critiquely-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-12-11T10:22:06.177614663Z"
