@@ -9,7 +9,7 @@ affinity: {}
 receiver:
   replicas: 1
   image:
-    repository: local:5000/github-receiver
+    repository: ghcr.io/critiquely/critiquely/receiver
     pullPolicy: Always
     tag: "latest"
   resources:
@@ -19,21 +19,21 @@ receiver:
     requests:
       cpu: 100m
       memory: 128Mi
-  ingress:
-    enabled: true
-    className: ""
-    annotations:
-      kubernetes.io/ingress.class: nginx
-      cert-manager.io/cluster-issuer: letsencrypt-prod
-    hosts:
-      - host: webhook.yourdomain.com
-        paths:
-          - path: /
-            pathType: Prefix
-    tls:
-      - secretName: webhook-tls
-        hosts:
-          - webhook.yourdomain.com
+  # ingress:
+  #   enabled: true
+  #   className: ""
+  #   annotations:
+  #     kubernetes.io/ingress.class: nginx
+  #     cert-manager.io/cluster-issuer: letsencrypt-prod
+  #   hosts:
+  #     - host: webhook.yourdomain.com
+  #       paths:
+  #         - path: /
+  #           pathType: Prefix
+  #   tls:
+  #     - secretName: webhook-tls
+  #       hosts:
+  #         - webhook.yourdomain.com
   service:
     type: ClusterIP
     port: 8000
@@ -42,7 +42,7 @@ receiver:
 processor:
   replicas: 1
   image:
-    repository: local:5000/critiquely-cli
+    repository: ghcr.io/critiquely/critiquely/processor
     pullPolicy: Always
     tag: "latest"
   resources:
@@ -58,11 +58,10 @@ rabbitmq:
   enabled: true
   auth:
     username: critiquely
-    # password: "auto-generated"  # Bitnami chart will auto-generate if not specified
-    existingPasswordSecret: "critiquely-secrets"  # Use existing secret for password
-  persistence:
-    enabled: true
-    size: 8Gi
+    password: critiquely123
+  # persistence:
+  #   enabled: true
+  #   size: 8Gi
   resources:
     limits:
       cpu: 500m
@@ -74,15 +73,13 @@ rabbitmq:
     name: "code_review_queue"
 
 keda:
-  enabled: true
+  enabled: false
 
 secrets:
   anthropic:
-    # token: 
     existingSecret: critiquely-secrets
     secretKey: anthropic-token
   github:
-    # token:
     existingSecret: critiquely-secrets
     secretKey: github-token
 
