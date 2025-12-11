@@ -19,8 +19,8 @@ receiver:
     requests:
       cpu: 100m
       memory: 128Mi
-  # ingress:
-  #   enabled: true
+  ingress:
+    enabled: false
   #   className: ""
   #   annotations:
   #     kubernetes.io/ingress.class: nginx
