@@ -71,6 +71,8 @@ rabbitmq:
       memory: 256Mi
   queue:
     name: "code_review_queue"
+  image:
+    repository: bitnamilegacy/rabbitmq
 
 keda:
   enabled: false
