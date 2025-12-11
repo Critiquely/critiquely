@@ -1,0 +1,91 @@
+# Global configuration
+nameOverride: ""
+fullnameOverride: ""
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Github receiver configuration
+receiver:
+  replicas: 1
+  image:
+    repository: local:5000/github-receiver
+    pullPolicy: Always
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  ingress:
+    enabled: true
+    className: ""
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: webhook.yourdomain.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: webhook-tls
+        hosts:
+          - webhook.yourdomain.com
+  service:
+    type: ClusterIP
+    port: 8000
+
+# Processor configuration
+processor:
+  replicas: 1
+  image:
+    repository: local:5000/critiquely-cli
+    pullPolicy: Always
+    tag: "latest"
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# RabbitMQ configuration
+rabbitmq:
+  enabled: true
+  auth:
+    username: critiquely
+    # password: "auto-generated"  # Bitnami chart will auto-generate if not specified
+    existingPasswordSecret: "critiquely-secrets"  # Use existing secret for password
+  persistence:
+    enabled: true
+    size: 8Gi
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  queue:
+    name: "code_review_queue"
+
+keda:
+  enabled: true
+
+secrets:
+  anthropic:
+    # token: 
+    existingSecret: critiquely-secrets
+    secretKey: anthropic-token
+  github:
+    # token:
+    existingSecret: critiquely-secrets
+    secretKey: github-token
+
+
+
+
