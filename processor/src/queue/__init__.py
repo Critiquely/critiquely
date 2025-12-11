@@ -1,5 +1,6 @@
-"""Queue processing module for RabbitMQ integration."""
+"""Queue module for RabbitMQ message processing."""
 
-from .consumer import ReviewQueueConsumer, start_queue_worker
+from src.queue.consumer import ReviewQueueConsumer
+from src.queue.rabbitmq import RabbitMQClient
 
-__all__ = ['ReviewQueueConsumer', 'start_queue_worker']
+__all__ = ["ReviewQueueConsumer", "RabbitMQClient"]
