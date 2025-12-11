@@ -41,9 +41,7 @@ logger = logging.getLogger(__name__)
     "--modified_files",
     help="A json object consisting of the modified files (required for CLI mode)",
 )
-@click.pass_context
 def main(
-    ctx: click.Context,
     queue_mode: bool,
     repo_url: str,
     original_pr_url: str,
@@ -70,7 +68,7 @@ def main(
         if missing_args:
             error_msg = f"❌ Missing required arguments for CLI mode: {', '.join(missing_args)}\n"
             error_msg += "💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments"
-            ctx.fail(error_msg)
+            raise click.UsageError(error_msg)
 
         async def run():
             if not settings.github_token:
