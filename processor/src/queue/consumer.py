@@ -3,13 +3,11 @@
 import asyncio
 import json
 import logging
-import sys
 from typing import Any, Dict
 
 from src.config import settings
+from src.graph.graph import run_graph
 from src.queue.rabbitmq import RabbitMQClient
-
-# from src.core.review import run_review_graph
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +28,7 @@ class ReviewQueueConsumer:
             )
 
             # Run the review asynchronously
-            result = asyncio.run(self._run_review_async(message_data))
+            result = asyncio.run(self.run_review_async(message_data))
 
             # Acknowledge the message
             ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -45,16 +43,14 @@ class ReviewQueueConsumer:
             # Requeue the message for retry
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
-    async def _run_review_async(self, message_data: Dict[str, Any]):
+    async def run_review_async(self, message_data: Dict[str, Any]):
         """Run the review graph asynchronously."""
-        # Uncomment when run_review_graph is available
-        # return await run_review_graph(
-        #     repo_url=message_data["repo_url"],
-        #     original_pr_url=message_data["original_pr_url"],
-        #     base_branch=message_data["branch"],
-        #     modified_files=json.dumps(message_data["modified_files"]),
-        # )
-        # Placeholder for now
+        return await run_graph(
+            repo_url=message_data["repo_url"],
+            original_pr_url=message_data["original_pr_url"],
+            base_branch=message_data["branch"],
+            modified_files=json.dumps(message_data["modified_files"]),
+        )
         logger.info(f"🔄 Would process: {message_data['repo_url']}")
         return "Review completed (placeholder)"
 

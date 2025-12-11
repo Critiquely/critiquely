@@ -10,11 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 def run_queue():
-    """Entry point for the queue worker."""
-    if not settings.github_token:
-        logger.error("❌ GITHUB_TOKEN is unset or empty")
-        sys.exit(1)
-
     consumer = ReviewQueueConsumer()
 
     try:
