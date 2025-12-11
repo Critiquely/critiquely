@@ -1,8 +1,8 @@
 apiVersion: v2
-name: Critiquely
+name: critiquely
 description: Automated code improvements for PRs
 type: application
-version: 0.1.1
+version: 0.1.2
 appVersion: "1.0"
 
 dependencies:
