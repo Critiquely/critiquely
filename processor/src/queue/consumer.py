@@ -67,11 +67,10 @@ def start_queue_worker():
     if not settings.github_token:
         logger.error("❌ GITHUB_TOKEN is unset or empty")
         sys.exit(1)
-    
+
     consumer = ReviewQueueConsumer()
-    
+
     try:
-        consumer.connect()
         consumer.start_consuming()
     except Exception as e:
         logger.error(f"❌ Queue worker failed: {e}", exc_info=True)
