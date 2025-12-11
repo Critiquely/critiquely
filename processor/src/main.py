@@ -70,11 +70,11 @@ def main(
             error_msg += "💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments"
             raise click.UsageError(error_msg)
 
-        async def run():
-            if not settings.github_token:
-                logger.error("❌ GITHUB_TOKEN is unset or empty")
-                sys.exit(1)
+        # Validate GITHUB_TOKEN early
+        if not settings.github_token:
+            raise click.ClickException("❌ GITHUB_TOKEN is unset or empty")
 
+        async def run():
             try:
                 result = await run_review_graph(
                     repo_url=repo_url,
@@ -86,6 +86,7 @@ def main(
                 click.echo("\n" + "=" * 50 + "\n")
             except Exception as e:
                 logger.error(f"❌ Code review failed: {e}", exc_info=True)
+                raise click.ClickException(f"Code review failed: {e}")
 
         asyncio.run(run())
 
