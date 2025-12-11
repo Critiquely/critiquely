@@ -124,7 +124,7 @@ def clone_repo(state: DevAgentState) -> dict:
 
     except GitCommandError as exc:
         error = f"❌ Failed to clone {repo_url}@{branch}: {exc}"
-        logger.error(error)
+        logger.error(error.replace(settings.github_token, '***'))
         return {"messages": [HumanMessage(content=error)]}
 
 
