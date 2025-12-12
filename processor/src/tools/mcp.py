@@ -11,13 +11,27 @@ class CodeReviewError(Exception):
 
 @asynccontextmanager
 async def get_mcp_client() -> AsyncGenerator[MultiServerMCPClient, None]:
-    """Context manager for MCP client lifecycle management.
+    """Context manager for MCP (Model Context Protocol) client lifecycle management.
+
+    Initializes a MultiServerMCPClient with filesystem access to the temporary
+    directory. The client uses the @modelcontextprotocol/server-filesystem
+    package via npx.
 
     Yields:
-        MultiServerMCPClient: Configured MCP client
+        MultiServerMCPClient: Configured MCP client with filesystem server attached.
 
     Raises:
-        CodeReviewError: If required environment variables are missing
+        CodeReviewError: If required environment variables are missing or if
+                        the MCP server fails to initialize.
+
+    Note:
+        The client is automatically closed when the context exits, ensuring
+        proper cleanup of server processes and connections.
+
+    Example:
+        async with get_mcp_client() as client:
+            # Use client to interact with filesystem tools
+            tools = await client.list_tools()
     """
     client = MultiServerMCPClient(
         {

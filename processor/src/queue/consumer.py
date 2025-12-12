@@ -19,7 +19,19 @@ class ReviewQueueConsumer:
         self.client = RabbitMQClient()
 
     def process_message(self, ch, method, properties, body):
-        """Process a single message from the queue."""
+        """Process a single code review message from the queue.
+
+        Args:
+            ch: RabbitMQ channel object.
+            method: Delivery method containing delivery_tag for acknowledgment.
+            properties: Message properties (unused).
+            body: Raw message body bytes containing review request data.
+
+        Note:
+            - On success: Message is acknowledged (ack) and removed from queue.
+            - On ValueError: Message is rejected (nack) without requeue (dead letter).
+            - On other Exception: Message is rejected (nack) with requeue for retry.
+        """
         try:
             # Parse and validate the message
             message_data = self.client.parse_message(body)
@@ -44,7 +56,22 @@ class ReviewQueueConsumer:
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
     async def run_review_async(self, message_data: Dict[str, Any]):
-        """Run the review graph asynchronously."""
+        """Execute the LangGraph code review workflow asynchronously.
+
+        Args:
+            message_data: Dictionary containing:
+                - repo_url: GitHub repository URL
+                - original_pr_url: Pull request URL
+                - branch: Branch name to review
+                - modified_files: List of modified files
+
+        Returns:
+            Result from the run_graph execution.
+
+        Note:
+            This wraps the async run_graph function and handles the JSON
+            serialization of modified_files.
+        """
         return await run_graph(
             repo_url=message_data["repo_url"],
             original_pr_url=message_data["original_pr_url"],
@@ -55,11 +82,23 @@ class ReviewQueueConsumer:
         return "Review completed (placeholder)"
 
     def start_consuming(self):
-        """Start consuming messages from the queue."""
+        """Initialize and start the consumer (blocking operation).
+
+        Connects to RabbitMQ, sets up the consumer with the process_message
+        callback, and begins consuming messages from the queue.
+
+        Note:
+            This is a blocking call that runs indefinitely until interrupted.
+        """
         self.client.connect()
         self.client.setup_consumer(self.process_message)
         self.client.start_consuming()
 
     def close(self):
-        """Close the connection to RabbitMQ."""
+        """Close the RabbitMQ connection and cleanup resources.
+
+        Note:
+            Should be called in a finally block to ensure cleanup occurs
+            even if an error is raised.
+        """
         self.client.close()

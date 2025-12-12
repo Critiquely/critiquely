@@ -17,16 +17,16 @@ class DevAgentState(TypedDict):
 
     # File Details
     clone_path: Optional[str]
-    # modified_files: list[dict]
+    modified_files: list[dict]
+
+    # PR Details
+    original_pr_url: str
+    # pr_number: Optional[str]
+    # pr_url: Optional[str]
 
     # # Recommendation Details
     # current_recommendation: Optional[dict]
     # recommendations: list[dict]
-
-    # # PR Details
-    # original_pr_url: str
-    # pr_number: Optional[str]
-    # pr_url: Optional[str]
 
     # # Tracking Information - Used during bot execution
     # active_file_name: Optional[str]

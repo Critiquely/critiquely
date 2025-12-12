@@ -2,6 +2,8 @@ import json
 import logging
 import tempfile
 
+from langchain_core.messages import HumanMessage
+
 from src.state.state import DevAgentState
 
 from src.utils.git import create_github_https_url
@@ -13,6 +15,22 @@ from git import Repo, GitCommandError, InvalidGitRepositoryError, NoSuchPathErro
 logger = logging.getLogger(__name__)
 
 def clone_repo(state: DevAgentState) -> dict:
+    """Clone a Git repository to a temporary directory.
+
+    Args:
+        state: DevAgentState containing:
+            - repo_url: GitHub repository URL (will be converted to HTTPS format)
+            - base_branch: Branch name to clone
+
+    Returns:
+        Dictionary with state updates:
+            - clone_path: Temporary directory path where repo was cloned (on success)
+            - messages: List containing a HumanMessage with operation status
+
+    Note:
+        Creates a shallow clone (depth=1, single branch) for efficiency.
+        On failure, returns an error message without clone_path.
+    """
     repo_url = create_github_https_url(get_state_value(state, "repo_url"))
     branch = get_state_value(state, "base_branch")
 
