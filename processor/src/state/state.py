@@ -17,19 +17,19 @@ class DevAgentState(TypedDict):
 
     # File Details
     clone_path: Optional[str]
-    modified_files: list[dict]
+    # modified_files: list[dict]
 
-    # Recommendation Details
-    current_recommendation: Optional[dict]
-    recommendations: list[dict]
+    # # Recommendation Details
+    # current_recommendation: Optional[dict]
+    # recommendations: list[dict]
 
-    # PR Details
-    original_pr_url: str
-    pr_number: Optional[str]
-    pr_url: Optional[str]
+    # # PR Details
+    # original_pr_url: str
+    # pr_number: Optional[str]
+    # pr_url: Optional[str]
 
-    # Tracking Information - Used during bot execution
-    active_file_name: Optional[str]
-    active_file_content: Optional[str]
-    active_file_lines_changed: Optional[str]
-    updated_files: list[str]  # Files modified by MCP tools
+    # # Tracking Information - Used during bot execution
+    # active_file_name: Optional[str]
+    # active_file_content: Optional[str]
+    # active_file_lines_changed: Optional[str]
+    # updated_files: list[str]  # Files modified by MCP tools

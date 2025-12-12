@@ -14,10 +14,44 @@ logging.basicConfig(
     level=logging.INFO,
 )
 logging.getLogger("httpx").setLevel(logging.WARNING)
-
 logger = logging.getLogger(__name__)
 
 REQUIRED_CLI_ARGS = ["repo_url", "original_pr_url", "branch", "modified_files"]
+
+async def run_cli(repo_url, original_pr_url, branch, modified_files):
+    """
+    
+    Run a single code review in CLI mode.
+    
+    """
+    try:
+        result = await run_graph(
+            repo_url=repo_url,
+            original_pr_url=original_pr_url,
+            base_branch=branch,
+            modified_files=modified_files,
+        )
+        click.echo(result)
+
+    except Exception as exc:
+        logger.error(f"❌ Review failed: {exc}", exc_info=True)
+        sys.exit(1)
+
+def run_queue():
+    """
+    
+    Run a  code review in queue mode.
+    
+    """
+    consumer = ReviewQueueConsumer()
+
+    try:
+        consumer.start_consuming()
+    except Exception as e:
+        logger.error(f"❌ Queue worker failed: {e}", exc_info=True)
+        sys.exit(1)
+    finally:
+        consumer.close()
 
 
 @click.command()
@@ -29,13 +63,13 @@ REQUIRED_CLI_ARGS = ["repo_url", "original_pr_url", "branch", "modified_files"]
 def main(queue_mode, repo_url, original_pr_url, branch, modified_files):
     """Critiquely – AI-powered code review tool."""
 
-    # Queue worker mode bypasses CLI argument checks
+    # Queue Mode
     if queue_mode:
         logger.info("🚀 Starting queue worker")
         run_queue()
         return
 
-    # Validate CLI args
+    # CLI Mode
     args = locals()
     missing = [arg for arg in REQUIRED_CLI_ARGS if not args[arg]]
     if missing:
