@@ -83,6 +83,7 @@ def main(
         if not isinstance(parsed_modified_files, (dict, list)):
             logger.error(f"❌ modified_files must be a JSON object or array, got {type(parsed_modified_files).__name__}")
             logger.info("💡 Please provide modified_files as a valid JSON object or array")
+            logger.info("💡 Example: '{\"file1.py\": {\"status\": \"modified\"}, \"file2.py\": {\"status\": \"added\"}}' or '[\"file1.py\", \"file2.py\"]'")
             sys.exit(1)
 
         async def run():
