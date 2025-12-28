@@ -36,12 +36,23 @@ class RabbitMQClient:
             raise
     
     def _setup_queue(self) -> None:
-        """Setup queue with consistent configuration."""
+        """Setup default queue with consistent configuration."""
         if not self.channel:
             raise RuntimeError("Channel not available")
-        
-        # Declare the queue (creates if doesn't exist)
+
+        # Declare the default queue (creates if doesn't exist)
         self.channel.queue_declare(queue=settings.queue_name, durable=True)
+
+    def declare_queue(self, queue_name: str) -> None:
+        """Declare a queue (creates if doesn't exist).
+
+        Args:
+            queue_name: Name of the queue to declare.
+        """
+        if not self.channel:
+            raise RuntimeError("Channel not available")
+
+        self.channel.queue_declare(queue=queue_name, durable=True)
     
     def _validate_message(self, message_data: Dict[str, Any]) -> None:
         """Validate message contains required fields."""
@@ -72,17 +83,27 @@ class RabbitMQClient:
             raise
     
     def setup_consumer(self, message_handler: Callable) -> None:
-        """Setup consumer with message handler."""
+        """Setup consumer with message handler for the default queue."""
+        self.setup_consumer_for_queue(settings.queue_name, message_handler)
+
+    def setup_consumer_for_queue(
+        self, queue_name: str, message_handler: Callable
+    ) -> None:
+        """Setup consumer with message handler for a specific queue.
+
+        Args:
+            queue_name: Name of the queue to consume from.
+            message_handler: Callback function to handle messages.
+        """
         if not self.channel:
             raise RuntimeError("Not connected to RabbitMQ. Call connect() first.")
-        
+
         # Set QoS to process one message at a time
         self.channel.basic_qos(prefetch_count=1)
-        
+
         # Setup consumer
         self.channel.basic_consume(
-            queue=settings.queue_name,
-            on_message_callback=message_handler
+            queue=queue_name, on_message_callback=message_handler
         )
     
     def start_consuming(self) -> None:

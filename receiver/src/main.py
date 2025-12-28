@@ -1,10 +1,9 @@
-"""FastAPI GitHub webhook that pushes PR data to RabbitMQ queue."""
+"""FastAPI GitHub webhook with multi-workflow event routing."""
+
 import json
-import os
-from typing import Set
+from typing import Set, Optional, List
 from contextlib import asynccontextmanager
 import time
-import asyncio
 
 import httpx
 import pika
@@ -14,8 +13,11 @@ import uvicorn
 import logging
 from pydantic_settings import BaseSettings
 
+from routing import EventRouter, RoutingRule, create_default_router
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 class Settings(BaseSettings):
     github_token: str
@@ -23,16 +25,17 @@ class Settings(BaseSettings):
     rabbitmq_port: int = 5672
     rabbitmq_user: str = "critiquely"
     rabbitmq_pass: str = "critiquely123"
-    rabbitmq_queue: str = "code_review_queue"
     dev_mode: bool = False
     rabbitmq_retry_attempts: int = 3
     rabbitmq_retry_delay: int = 5
-    
+
     class Config:
         env_file = ".env"
 
+
 settings = Settings()
 connection_pool = None
+router: Optional[EventRouter] = None
 
 def create_rabbitmq_connection():
     """Create RabbitMQ connection with retry logic."""
@@ -82,6 +85,12 @@ def ensure_rabbitmq_connection():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global router
+
+    # Initialize the event router
+    router = create_default_router()
+    logger.info(f"Initialized event router with events: {router.registered_events}")
+
     if not settings.dev_mode:
         try:
             ensure_rabbitmq_connection()
@@ -108,30 +117,45 @@ def get_rabbitmq_channel():
         logger.error(f"Failed to get RabbitMQ channel: {e}")
         return None
 
-def publish_to_queue(message: dict, channel = Depends(get_rabbitmq_channel)):
-    """Publish message to RabbitMQ queue with retry logic."""
+def publish_to_queue(
+    message: dict, queue_name: str, channel=Depends(get_rabbitmq_channel)
+):
+    """Publish message to a specific RabbitMQ queue with retry logic.
+
+    Args:
+        message: The message to publish.
+        queue_name: The target queue name.
+        channel: RabbitMQ channel (injected).
+    """
     if settings.dev_mode:
-        logger.info(f"[DEV MODE] Would publish message: {json.dumps(message, indent=2)}")
+        logger.info(
+            f"[DEV MODE] Would publish to '{queue_name}': {json.dumps(message, indent=2)}"
+        )
         return
-    
+
     for attempt in range(settings.rabbitmq_retry_attempts):
         try:
             if not channel:
                 channel = get_rabbitmq_channel()
-            
+
             if channel:
+                # Ensure queue exists
+                channel.queue_declare(queue=queue_name, durable=True)
+
                 channel.basic_publish(
-                    exchange='',
-                    routing_key=settings.rabbitmq_queue,
+                    exchange="",
+                    routing_key=queue_name,
                     body=json.dumps(message),
-                    properties=pika.BasicProperties(delivery_mode=2)
+                    properties=pika.BasicProperties(delivery_mode=2),
                 )
                 channel.close()
-                logger.info(f"Message published successfully (attempt {attempt + 1})")
+                logger.info(
+                    f"Message published to '{queue_name}' (attempt {attempt + 1})"
+                )
                 return
             else:
                 raise Exception("Could not get RabbitMQ channel")
-                
+
         except Exception as e:
             logger.warning(f"Publish attempt {attempt + 1} failed: {e}")
             if attempt < settings.rabbitmq_retry_attempts - 1:
@@ -139,8 +163,12 @@ def publish_to_queue(message: dict, channel = Depends(get_rabbitmq_channel)):
                 channel = None  # Force reconnection
             else:
                 logger.error("All publish attempts failed, falling back to dev mode")
-                logger.info(f"[FALLBACK] Message that failed to publish: {json.dumps(message, indent=2)}")
-                raise HTTPException(status_code=500, detail="Failed to publish message after retries")
+                logger.info(
+                    f"[FALLBACK] Message that failed to publish: {json.dumps(message, indent=2)}"
+                )
+                raise HTTPException(
+                    status_code=500, detail="Failed to publish message after retries"
+                )
 
 def extract_changed_lines(patch_text: str, filename: str) -> Set[int]:
     """Extract changed line numbers from patch text."""
@@ -183,34 +211,74 @@ async def get_pr_modified_files(pr_url: str) -> list[dict]:
         for file in resp.json()
     ]
 
+@app.get("/health")
+async def health():
+    """Health check endpoint."""
+    return {
+        "status": "healthy",
+        "dev_mode": settings.dev_mode,
+        "registered_events": router.registered_events if router else [],
+    }
+
+
 @app.post("/webhook")
 async def handle_webhook(
     request: Request,
     x_github_event: str = Header(...),
-    channel = Depends(get_rabbitmq_channel)
+    channel=Depends(get_rabbitmq_channel),
 ):
-    """Handle GitHub pull_request webhook and queue PR data."""
+    """Handle GitHub webhook and route to appropriate workflow queues."""
     payload = await request.json()
-    
-    if x_github_event != "pull_request.opened":
-        raise HTTPException(status_code=400, detail="Only pull_request 'opened' events are handled")
-    
-    pr_data = payload["pull_request"]
-    repo_data = payload["repository"]
-    pr_url = pr_data["url"]
-    modified_files = await get_pr_modified_files(pr_url)
 
-    message = {
-        "repo_url": repo_data.get("clone_url"),
-        "original_pr_url": pr_data.get("html_url"),
-        "branch": pr_data.get("head", {}).get("ref"),
-        "modified_files": modified_files,
-    }
-    
-    publish_to_queue(message, channel)
-    logger.info(f"Queued PR {pr_data.get('number')} with {len(modified_files)} files")
-    
-    return {"status": "success", "message": "PR data queued for processing"}
+    # Combine event type with action for full event identification
+    action = payload.get("action", "")
+    full_event = f"{x_github_event}.{action}" if action else x_github_event
+
+    # Get applicable routes
+    routes = router.get_routes(full_event, payload)
+
+    if not routes:
+        logger.info(f"No routes configured for event: {full_event}")
+        return {"status": "ignored", "event": full_event}
+
+    # Process each applicable route
+    results = []
+    for route in routes:
+        try:
+            # Build message using route's message builder
+            message = route.message_builder(payload)
+
+            # Enrich message with additional data if needed (e.g., modified files for PRs)
+            if route.workflow_name == "review" and "pull_request" in payload:
+                pr_url = payload["pull_request"]["url"]
+                message["modified_files"] = await get_pr_modified_files(pr_url)
+
+            # Publish to the workflow's queue
+            publish_to_queue(message, route.queue_name, channel)
+
+            results.append(
+                {
+                    "workflow": route.workflow_name,
+                    "queue": route.queue_name,
+                    "status": "queued",
+                }
+            )
+
+            logger.info(
+                f"Queued {route.workflow_name} for PR {payload.get('pull_request', {}).get('number', 'N/A')}"
+            )
+
+        except Exception as e:
+            logger.error(f"Failed to route to {route.workflow_name}: {e}")
+            results.append(
+                {
+                    "workflow": route.workflow_name,
+                    "status": "failed",
+                    "error": str(e),
+                }
+            )
+
+    return {"status": "processed", "event": full_event, "routes": results}
 
 if __name__ == "__main__":
     uvicorn.run("main:app", port=9000, reload=True)

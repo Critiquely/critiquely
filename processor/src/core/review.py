@@ -1,30 +1,48 @@
 # src/core/review.py
-from src.core.graph import build_graph
+"""Deprecated: Use src.workflows.review.ReviewWorkflow instead.
 
-from uuid import uuid4
-import json
+This module provides backward compatibility for existing code that imports
+run_review_graph from this location. New code should use the ReviewWorkflow
+class directly.
+"""
+
 import logging
+import warnings
+
+from src.workflows.review import ReviewWorkflow
+
+logger = logging.getLogger(__name__)
 
 
 async def run_review_graph(
     repo_url: str, original_pr_url: str, base_branch: str, modified_files: str
 ):
-    # Build the graph
-    graph = await build_graph()
+    """Run the code review workflow.
 
-    # Define the input state
-    input_state = {
-        "repo_url": repo_url,
-        "original_pr_url": original_pr_url,
-        "base_branch": base_branch,
-        "modified_files": json.loads(modified_files),
-        "messages": [],
-    }
+    Deprecated:
+        Use ReviewWorkflow.run() directly instead.
 
-    config = {"configurable": {"thread_id": str(uuid4())}}
+    Args:
+        repo_url: URL of the repository to review.
+        original_pr_url: URL of the PR that triggered the review.
+        base_branch: Branch name to review.
+        modified_files: JSON string of modified files.
 
-    # Stream the output
-    async for event in graph.astream(input_state, config):
-        for value in event.values():
-            content = value["messages"][-1].content
-            logging.info(f"🤖 Assistant: {content}")
+    Returns:
+        Result from the review workflow.
+    """
+    warnings.warn(
+        "run_review_graph is deprecated. Use ReviewWorkflow.run() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    workflow = ReviewWorkflow()
+    return await workflow.run(
+        {
+            "repo_url": repo_url,
+            "original_pr_url": original_pr_url,
+            "branch": base_branch,
+            "modified_files": modified_files,
+        }
+    )
