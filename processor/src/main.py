@@ -41,9 +41,7 @@ logger = logging.getLogger(__name__)
     "--modified_files",
     help="A json object consisting of the modified files (required for CLI mode)",
 )
-@click.pass_context
 def main(
-    ctx: click.Context,
     queue_mode: bool,
     repo_url: str,
     original_pr_url: str,
@@ -57,24 +55,26 @@ def main(
         start_queue_worker()
     else:
         # Validate required arguments for CLI mode
-        required_args = {
-            'repo_url': repo_url,
-            'original_pr_url': original_pr_url,
-            'branch': branch,
-            'modified_files': modified_files
-        }
+        missing_args = []
+        if not repo_url:
+            missing_args.append('repo_url')
+        if not original_pr_url:
+            missing_args.append('original_pr_url')
+        if not branch:
+            missing_args.append('branch')
+        if not modified_files:
+            missing_args.append('modified_files')
         
-        missing_args = [arg for arg, value in required_args.items() if not value]
         if missing_args:
-            logger.error(f"❌ Missing required arguments for CLI mode: {', '.join(missing_args)}")
-            logger.info("💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments")
-            sys.exit(1)
+            error_msg = f"❌ Missing required arguments for CLI mode: {', '.join(missing_args)}\n"
+            error_msg += "💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments"
+            raise click.UsageError(error_msg)
+
+        # Validate GITHUB_TOKEN early
+        if not settings.github_token:
+            raise click.ClickException("❌ GITHUB_TOKEN is unset or empty")
 
         async def run():
-            if not settings.github_token:
-                logger.error("❌ GITHUB_TOKEN is unset or empty")
-                sys.exit(1)
-
             try:
                 result = await run_review_graph(
                     repo_url=repo_url,
@@ -86,6 +86,7 @@ def main(
                 click.echo("\n" + "=" * 50 + "\n")
             except Exception as e:
                 logger.error(f"❌ Code review failed: {e}", exc_info=True)
+                raise click.ClickException(f"Code review failed: {e}")
 
         asyncio.run(run())
 
