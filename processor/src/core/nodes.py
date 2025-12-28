@@ -19,6 +19,17 @@ from src.utils.fs import get_temp_dir
 from src.utils.git import create_github_https_url
 from src.utils.state import get_state_value
 
+"""
+Core nodes for the development agent workflow.
+
+This module provides nodes for Git operations, PR management, and LLM-based code review.
+
+External Dependencies:
+    - GitPython (>=3.1.0): Git repository management and operations.
+      API compatibility may vary significantly between versions. Ensure the installed
+      version matches the requirements to prevent runtime errors with Git commands.
+"""
+
 # Use the root logger configuration from CLI
 logger = logging.getLogger(__name__)
 
