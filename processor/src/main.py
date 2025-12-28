@@ -10,8 +10,7 @@ from src.core.review import run_review_graph
 from src.queue import start_queue_worker
 
 logging.basicConfig(
-    format="%(asctime)s %(levelname)7s %(message)s",
-    datefmt="%H:%M:%S",
+    format="%(levelname)7s %(message)s",
     level=logging.INFO,
 )
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -64,11 +63,11 @@ def main(
             'modified_files': modified_files
         }
         
-        missing_args = [arg for arg, value in required_args.items() if not value]
+        missing_args = [arg for arg, value in required_args.items() if not value or (isinstance(value, str) and value.strip() == '')]
         if missing_args:
             logger.error(f"❌ Missing required arguments for CLI mode: {', '.join(missing_args)}")
             logger.info("💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments")
-            sys.exit(1)
+            raise click.Abort()
 
         async def run():
             if not settings.github_token:
