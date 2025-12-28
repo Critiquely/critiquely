@@ -78,8 +78,12 @@ def main(
             logger.error(f"❌ Invalid JSON format for modified_files: {e}")
             logger.info("💡 Please provide modified_files as a valid JSON object")
             sys.exit(1)
-        except Exception as e:
-            logger.error(f"❌ Error parsing modified_files: {e}")
+        
+        # Validate parsed_modified_files is the expected data structure
+        if not isinstance(parsed_modified_files, (dict, list)):
+            logger.error(f"❌ modified_files must be a JSON object or array, got {type(parsed_modified_files).__name__}")
+            logger.info("💡 Please provide modified_files as a valid JSON object or array")
+            logger.info("💡 Example: '{\"file1.py\": {\"status\": \"modified\"}, \"file2.py\": {\"status\": \"added\"}}' or '[\"file1.py\", \"file2.py\"]'")
             sys.exit(1)
 
         async def run():
