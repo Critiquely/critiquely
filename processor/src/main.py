@@ -68,7 +68,7 @@ def main(
         if missing_args:
             logger.error(f"❌ Missing required arguments for CLI mode: {', '.join(missing_args)}")
             logger.info("💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments")
-            sys.exit(1)
+            raise click.Abort()
 
         async def run():
             if not settings.github_token:
