@@ -95,14 +95,19 @@ class ReviewWorkflow(BaseWorkflow[ReviewState]):
         initial_state = self.create_initial_state(message_data)
         config = {"configurable": {"thread_id": str(uuid4())}}
 
-        result_state = None
+        # Accumulate state from partial updates
+        accumulated_state = dict(initial_state)
         async for event in graph.astream(initial_state, config):
             for value in event.values():
-                result_state = value
+                # Merge partial state updates into accumulated state
+                for key, val in value.items():
+                    if val is not None:  # Only update non-None values
+                        accumulated_state[key] = val
                 if messages := value.get("messages"):
                     logger.info(f"Assistant: {messages[-1].content}")
 
         return {
             "status": "completed",
-            "pr_url": result_state.get("pr_url") if result_state else None,
+            "pr_url": accumulated_state.get("pr_url"),
+            "pr_number": accumulated_state.get("pr_number"),
         }

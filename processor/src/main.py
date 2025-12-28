@@ -22,11 +22,16 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
-@click.group()
+@click.group(invoke_without_command=True)
 @click.version_option()
-def cli():
+@click.pass_context
+def cli(ctx):
     """Critiquely - Agentic code review and analysis tool."""
-    pass
+    if ctx.invoked_subcommand is None:
+        # Default to interactive mode when no subcommand given
+        from src.interactive import run_interactive
+
+        run_interactive()
 
 
 @cli.command()
@@ -107,6 +112,14 @@ def list_workflows():
         click.echo(f"    Queue: {meta.queue_name}")
         click.echo(f"    Events: {', '.join(meta.supported_events)}")
         click.echo()
+
+
+@cli.command()
+def interactive():
+    """Launch interactive mode with slash commands."""
+    from src.interactive import run_interactive
+
+    run_interactive()
 
 
 # Backward compatibility: support old --queue-mode flag
