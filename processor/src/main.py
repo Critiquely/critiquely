@@ -10,8 +10,7 @@ from src.core.review import run_review_graph
 from src.queue import start_queue_worker
 
 logging.basicConfig(
-    format="%(asctime)s %(levelname)7s %(message)s",
-    datefmt="%H:%M:%S",
+    format="%(levelname)7s %(message)s",
     level=logging.INFO,
 )
 logging.getLogger("httpx").setLevel(logging.WARNING)
