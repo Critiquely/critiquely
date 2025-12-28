@@ -78,9 +78,6 @@ def main(
             logger.error(f"❌ Invalid JSON format for modified_files: {e}")
             logger.info("💡 Please provide modified_files as a valid JSON object")
             sys.exit(1)
-        except Exception as e:
-            logger.error(f"❌ Error parsing modified_files: {e}")
-            sys.exit(1)
 
         async def run():
             if not settings.github_token:
