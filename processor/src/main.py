@@ -2,6 +2,7 @@
 
 import asyncio
 import click
+import json
 import logging
 import sys
 
@@ -70,6 +71,17 @@ def main(
             logger.info("💡 Use --queue-mode to run as a queue worker, or provide all required CLI arguments")
             sys.exit(1)
 
+        # Validate and parse modified_files JSON
+        try:
+            parsed_modified_files = json.loads(modified_files)
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Invalid JSON format for modified_files: {e}")
+            logger.info("💡 Please provide modified_files as a valid JSON object")
+            sys.exit(1)
+        except Exception as e:
+            logger.error(f"❌ Error parsing modified_files: {e}")
+            sys.exit(1)
+
         async def run():
             if not settings.github_token:
                 logger.error("❌ GITHUB_TOKEN is unset or empty")
@@ -80,7 +92,7 @@ def main(
                     repo_url=repo_url,
                     original_pr_url=original_pr_url,
                     base_branch=branch,
-                    modified_files=modified_files,
+                    modified_files=parsed_modified_files,
                 )
                 click.echo(result)
                 click.echo("\n" + "=" * 50 + "\n")
